@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BPM Tool</title>
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: radial-gradient(circle at top, #1f2a44, #0b0f14 60%);
+            color: #e8ecf4;
+        }
+
+        .panel {
+            background: rgba(12, 18, 30, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            padding: 28px;
+            width: min(420px, 92vw);
+            text-align: center;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+        }
+
+        .bpm-readout {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            align-items: baseline;
+            margin-bottom: 22px;
+            font-size: 1.2rem;
+        }
+
+        .bpm-value {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #6cf2c2;
+            min-width: 88px;
+            text-align: left;
+        }
+
+        button {
+            font: inherit;
+            border: none;
+            border-radius: 999px;
+            cursor: pointer;
+        }
+
+        .tap-button {
+            width: 100%;
+            padding: 18px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0b0f14;
+            background: linear-gradient(135deg, #6cf2c2, #5aa9ff);
+            transition: transform 120ms ease;
+        }
+
+        .tap-button:active {
+            transform: scale(0.985);
+        }
+
+        .reset-button {
+            margin-top: 14px;
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            color: #e8ecf4;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+    </style>
+</head>
+<body>
+    <main class="panel">
+        <div class="bpm-readout">
+            <span>BPM:</span>
+            <span class="bpm-value" id="bpm-value">0</span>
+        </div>
+        <button class="tap-button" id="tap-button" type="button">tap to beat</button>
+        <button class="reset-button" id="reset-button" type="button">reset</button>
+    </main>
+
+    <script>
+        const ONE_MINUTE_MS = 60000;
+        const tapTimes = [];
+
+        const bpmValueEl = document.getElementById('bpm-value');
+        const tapButton = document.getElementById('tap-button');
+        const resetButton = document.getElementById('reset-button');
+
+        function pruneOldTaps(now) {
+            const cutoff = now - ONE_MINUTE_MS;
+            while (tapTimes.length > 0 && tapTimes[0] < cutoff) {
+                tapTimes.shift();
+            }
+        }
+
+        function calculateBpm() {
+            const now = Date.now();
+            pruneOldTaps(now);
+
+            if (tapTimes.length < 2) {
+                bpmValueEl.textContent = '0';
+                return;
+            }
+
+            let totalInterval = 0;
+            for (let i = 1; i < tapTimes.length; i += 1) {
+                totalInterval += tapTimes[i] - tapTimes[i - 1];
+            }
+
+            const averageInterval = totalInterval / (tapTimes.length - 1);
+            const bpm = 60000 / averageInterval;
+            bpmValueEl.textContent = Number.isFinite(bpm) ? bpm.toFixed(1) : '0';
+        }
+
+        tapButton.addEventListener('click', () => {
+            tapTimes.push(Date.now());
+            calculateBpm();
+        });
+
+        resetButton.addEventListener('click', () => {
+            tapTimes.length = 0;
+            bpmValueEl.textContent = '0';
+        });
+
+        setInterval(calculateBpm, 1000);
+    </script>
+</body>
+</html>

@@ -39,6 +39,11 @@
       "name": "Card Bricks",
       "description": "Experiment with modular card layouts built from reusable bricks.",
       "path": "prototypes/card-bricks/index.html"
+    },
+    {
+      "name": "BPM Tool",
+      "description": "Tap the beat to measure tempo from the average interval between taps in the last minute.",
+      "path": "prototypes/bpm-tool/index.html"
     }
   ]
 }
