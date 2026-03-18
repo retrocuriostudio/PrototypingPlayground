@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finland Tmi B2B Invoicing Breakdown Calculator</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #081018;
+            --panel: rgba(10, 19, 31, 0.88);
+            --panel-strong: rgba(15, 26, 41, 0.95);
+            --border: rgba(255, 255, 255, 0.12);
+            --text: #eaf2ff;
+            --muted: #98a8c0;
+            --accent: #6ee7d8;
+            --accent-2: #74a7ff;
+            --warn: #ffcf70;
+            --danger: #ff8b8b;
+            --good: #83f0a1;
+            --shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(116, 167, 255, 0.22), transparent 35%),
+                radial-gradient(circle at top right, rgba(110, 231, 216, 0.18), transparent 30%),
+                linear-gradient(180deg, #09111a 0%, #071019 100%);
+            min-height: 100vh;
+        }
+
+        a {
+            color: #9fcbff;
+        }
+
+        .page {
+            width: min(1600px, calc(100vw - 32px));
+            margin: 24px auto 40px;
+        }
+
+        .hero,
+        .panel,
+        .sidebar-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
+        }
+
+        .hero {
+            padding: 28px;
+            margin-bottom: 20px;
+        }
+
+        .hero h1 {
+            margin: 0 0 10px;
+            font-size: clamp(1.8rem, 3vw, 3rem);
+            line-height: 1.1;
+        }
+
+        .hero p {
+            margin: 0;
+            color: var(--muted);
+            max-width: 960px;
+            line-height: 1.5;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .hero-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .badge {
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text);
+            font-size: 0.92rem;
+        }
+
+        .highlight-card {
+            padding: 18px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(110, 231, 216, 0.12), rgba(116, 167, 255, 0.14));
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .highlight-card strong {
+            display: block;
+            font-size: 1.05rem;
+            margin-bottom: 8px;
+        }
+
+        .app-grid {
+            display: grid;
+            grid-template-columns: minmax(460px, 1.15fr) minmax(380px, 1fr) 360px;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .panel {
+            padding: 20px;
+        }
+
+        .panel h2,
+        .sidebar-card h2 {
+            margin: 0 0 12px;
+            font-size: 1.15rem;
+        }
+
+        .top-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .segmented {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .segmented button,
+        .ghost-btn,
+        .primary-btn,
+        .secondary-btn {
+            appearance: none;
+            border: none;
+            cursor: pointer;
+            font: inherit;
+            color: inherit;
+        }
+
+        .segmented button {
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: transparent;
+            color: var(--muted);
+            transition: 140ms ease;
+        }
+
+        .segmented button.active {
+            background: linear-gradient(135deg, rgba(110, 231, 216, 0.22), rgba(116, 167, 255, 0.22));
+            color: var(--text);
+        }
+
+        .primary-btn,
+        .secondary-btn,
+        .ghost-btn {
+            padding: 10px 14px;
+            border-radius: 12px;
+        }
+
+        .primary-btn {
+            background: linear-gradient(135deg, #4ddbc7, #6f9cff);
+            color: #071019;
+            font-weight: 700;
+        }
+
+        .secondary-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .ghost-btn {
+            background: transparent;
+            border: 1px dashed rgba(255, 255, 255, 0.18);
+            color: var(--muted);
+        }
+
+        .sections {
+            display: grid;
+            gap: 16px;
+        }
+
+        details.section {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            overflow: hidden;
+        }
+
+        details.section[open] {
+            background: rgba(255, 255, 255, 0.045);
+        }
+
+        details.section summary {
+            list-style: none;
+            cursor: pointer;
+            padding: 16px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        details.section summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .summary-title {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .summary-title strong {
+            font-size: 1rem;
+        }
+
+        .summary-title span {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .section-body {
+            padding: 0 18px 18px;
+            display: grid;
+            gap: 14px;
+        }
+
+        .field-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 12px;
+        }
+
+        .field {
+            display: grid;
+            gap: 7px;
+            padding: 12px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .field label {
+            font-weight: 600;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .field small,
+        .note,
+        .muted {
+            color: var(--muted);
+            line-height: 1.45;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: rgba(3, 10, 18, 0.9);
+            color: var(--text);
+            font: inherit;
+            padding: 10px 12px;
+        }
+
+        textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .field-meta {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 0.82rem;
+            color: var(--muted);
+            flex-wrap: wrap;
+        }
+
+        .field-meta a {
+            color: #99c8ff;
+        }
+
+        .pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .pill {
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            font-size: 0.82rem;
+            color: var(--muted);
+        }
+
+        .warnings {
+            display: grid;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .warning,
+        .info,
+        .success {
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid;
+            line-height: 1.45;
+        }
+
+        .warning {
+            border-color: rgba(255, 207, 112, 0.35);
+            background: rgba(255, 207, 112, 0.08);
+            color: #ffe8b4;
+        }
+
+        .info {
+            border-color: rgba(116, 167, 255, 0.35);
+            background: rgba(116, 167, 255, 0.08);
+            color: #cfe0ff;
+        }
+
+        .success {
+            border-color: rgba(131, 240, 161, 0.35);
+            background: rgba(131, 240, 161, 0.08);
+            color: #cef7d9;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .kpi-card {
+            padding: 16px;
+            border-radius: 16px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.03));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .kpi-card span {
+            display: block;
+            color: var(--muted);
+            font-size: 0.88rem;
+            margin-bottom: 6px;
+        }
+
+        .kpi-card strong {
+            font-size: 1.35rem;
+            line-height: 1.15;
+        }
+
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        .summary-table th,
+        .summary-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .summary-table th {
+            color: var(--muted);
+            font-size: 0.86rem;
+            font-weight: 600;
+        }
+
+        .summary-table td:last-child,
+        .summary-table th:last-child {
+            text-align: right;
+        }
+
+        .summary-table tr.net-row td {
+            font-weight: 800;
+            color: var(--good);
+        }
+
+        .waterfall {
+            display: grid;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .waterfall-row {
+            display: grid;
+            grid-template-columns: 170px 1fr 100px;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .waterfall-label {
+            font-size: 0.9rem;
+        }
+
+        .waterfall-track {
+            height: 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.07);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .waterfall-fill {
+            height: 100%;
+            border-radius: inherit;
+        }
+
+        .waterfall-value {
+            text-align: right;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .explanation-list {
+            display: grid;
+            gap: 12px;
+            max-height: 72vh;
+            overflow: auto;
+            padding-right: 4px;
+        }
+
+        .explanation-item {
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            padding: 14px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .explanation-item h3 {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .explanation-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .explanation-meta span {
+            font-size: 0.8rem;
+            padding: 5px 9px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.07);
+            color: var(--muted);
+        }
+
+        .source-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .sidebar-card {
+            padding: 18px;
+            position: sticky;
+            top: 18px;
+        }
+
+        .sidebar-card + .sidebar-card {
+            margin-top: 16px;
+        }
+
+        .mode-note {
+            padding: 12px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--muted);
+            line-height: 1.5;
+            margin-bottom: 14px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .footer-note {
+            margin-top: 18px;
+            color: var(--muted);
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 1280px) {
+            .app-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar-card {
+                position: static;
+            }
+
+            .hero-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .page {
+                width: min(100vw - 20px, 100%);
+                margin: 10px auto 24px;
+            }
+
+            .hero,
+            .panel,
+            .sidebar-card {
+                padding: 16px;
+                border-radius: 18px;
+            }
+
+            .waterfall-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <section class="hero">
+            <div class="hero-grid">
+                <div>
+                    <h1>Finland Tmi B2B Invoicing Breakdown Calculator</h1>
+                    <p>
+                        Prototype for Finland-based <strong>Toiminimi (Tmi)</strong> invoicing analysis. It supports a quick estimate,
+                        a more tax-aware view, and a reverse solver that estimates the required monthly invoicing needed to reach a
+                        target monthly net cash result.
+                    </p>
+                    <div class="hero-badges">
+                        <span class="badge">Monthly + annual breakdown</span>
+                        <span class="badge">Quick estimate + advanced inputs</span>
+                        <span class="badge">Configurable tax bands and assumptions</span>
+                        <span class="badge">Explanation view with formulas and source URLs</span>
+                    </div>
+                </div>
+                <div class="highlight-card">
+                    <strong>Important prototype note</strong>
+                    <div class="muted">
+                        This tool is an estimation aid, not tax advice. Every percentage, threshold, band, and assumption can be edited.
+                        The explanation panel explicitly labels whether a figure is an input, configurable assumption, or estimate-only output.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="app-grid">
+            <section class="panel">
+                <div class="top-controls">
+                    <div class="segmented" id="mode-toggle" aria-label="Calculation mode">
+                        <button class="active" data-mode="quick" type="button">Quick estimate</button>
+                        <button data-mode="taxAware" type="button">Tax-aware</button>
+                        <button data-mode="reverse" type="button">Reverse solver</button>
+                    </div>
+                    <button class="secondary-btn" id="reset-defaults" type="button">Reset defaults</button>
+                </div>
+
+                <div class="mode-note" id="mode-note"></div>
+                <div class="warnings" id="warnings"></div>
+
+                <div class="sections">
+                    <details class="section" open>
+                        <summary>
+                            <div class="summary-title">
+                                <strong>Section A · Business profile</strong>
+                                <span>Tax year, residency, municipality, capital split inputs, and prior-year balance sheet assumptions.</span>
+                            </div>
+                            <span class="pill">Required for detailed tax logic</span>
+                        </summary>
+                        <div class="section-body">
+                            <div class="field-grid">
+                                <div class="field"><label for="taxYear">Tax year</label><select id="taxYear"></select><div class="field-meta"><span>Defaulted from config</span><a href="https://www.vero.fi/en/individuals/tax-cards-and-tax-returns/tax_card/tax-rate-and-income-ceiling/tax-bases/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="municipality">Municipality of residence</label><select id="municipality"></select><div class="field-meta"><span>Why it matters: municipal tax rate</span><a href="https://www.vero.fi/en/individuals/tax-cards-and-tax-returns/tax_card/tax-rate-and-income-ceiling/tax-bases/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="churchMember">Church tax applies?</label><select id="churchMember"><option value="false">No</option><option value="true">Yes</option></select><div class="field-meta"><span>Church tax is optional by status</span><a href="https://www.vero.fi/en/individuals/tax-cards-and-tax-returns/tax_card/tax-rate-and-income-ceiling/tax-bases/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="taxResident">Tax resident in Finland?</label><select id="taxResident"><option value="true">Yes</option><option value="false">No</option></select><div class="field-meta"><span>Why it matters: tax scope and warning logic</span><a href="https://www.vero.fi/en/businesses-and-corporations/business-operations/foreign-business-in-finland/your-tax-handbook-in-finland/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="healthCovered">Covered by Finnish health insurance?</label><select id="healthCovered"><option value="true">Yes</option><option value="false">No</option></select><div class="field-meta"><span>Impacts health-insurance estimates</span><a href="https://www.kela.fi/self-employment-income-and-contributions" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="onlyIncome">Only income stream?</label><select id="onlyIncome"><option value="true">Yes</option><option value="false">No</option></select><div class="field-meta"><span>Used for warnings and tax model context</span><a href="https://www.vero.fi/en/individuals/tax-cards-and-tax-returns/tax_card/tax-percentage-calculator/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="spouseInvolved">Spouse involved in business taxation?</label><select id="spouseInvolved"><option value="false">No</option><option value="true">Yes</option></select><div class="field-meta"><span>Warning only in this prototype</span><a href="https://www.vero.fi/en/businesses-and-corporations/taxes-and-charges/taxation-of-self-employed-individuals/instructions-for-filing/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="businessType">Business type</label><input id="businessType" value="Toiminimi (Tmi)" readonly><div class="field-meta"><span>Confirmed scope</span></div></div>
+                                <div class="field"><label for="priorYearAssets">Prior-year net assets / business assets (€)</label><input id="priorYearAssets" type="number" min="0" step="100" value="15000"><div class="field-meta"><span>For capital-income split</span><a href="https://www.vero.fi/en/businesses-and-corporations/taxes-and-charges/taxation-of-self-employed-individuals/instructions-for-filing/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="priorYearLiabilities">Prior-year liabilities (€)</label><input id="priorYearLiabilities" type="number" min="0" step="100" value="2000"><div class="field-meta"><span>Net assets = assets − liabilities</span><a href="https://www.vero.fi/en/businesses-and-corporations/taxes-and-charges/taxation-of-self-employed-individuals/instructions-for-filing/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="priorYearCapitalGains">Prior-year fixed-asset real estate / securities gains (€)</label><input id="priorYearCapitalGains" type="number" min="0" step="100" value="0"><div class="field-meta"><span>Configurable context field</span><a href="https://www.vero.fi/en/businesses-and-corporations/taxes-and-charges/taxation-of-self-employed-individuals/instructions-for-filing/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="capitalElection">Capital-income election</label><select id="capitalElection"><option value="0.2">20% of net assets</option><option value="0.1">10% of net assets</option><option value="0">0% (all earned income)</option></select><div class="field-meta"><span>User-selected capital return rate</span><a href="https://www.vero.fi/en/businesses-and-corporations/taxes-and-charges/taxation-of-self-employed-individuals/instructions-for-filing/" target="_blank" rel="noreferrer">Source</a></div></div>
+                            </div>
+                        </div>
+                    </details>
+
+                    <details class="section" open>
+                        <summary>
+                            <div class="summary-title">
+                                <strong>Section B · Revenue, VAT, and FX</strong>
+                                <span>Normalize invoice volume, VAT mode, and top-line assumptions before expenses or tax.</span>
+                            </div>
+                            <span class="pill">Core driver</span>
+                        </summary>
+                        <div class="section-body">
+                            <div class="field-grid">
+                                <div class="field"><label for="monthlyInvoice">Monthly invoice amount excl. VAT (€)</label><input id="monthlyInvoice" type="number" min="0" step="100" value="8000"><div class="field-meta"><span>Why it matters: starting point for every calculation</span><a href="https://www.vero.fi/en/businesses-and-corporations/taxes-and-charges/vat/how-to-calculate-vat/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="invoiceMonths">Invoice months per year</label><input id="invoiceMonths" type="number" min="1" max="12" step="1" value="12"><div class="field-meta"><span>Supports partial-year business activity</span></div></div>
+                                <div class="field"><label for="fxRate">FX rate to EUR</label><input id="fxRate" type="number" min="0.0001" step="0.0001" value="1"><div class="field-meta"><span>All outputs are in euros</span><a href="https://remote.com/global-hr/employer-of-record" target="_blank" rel="noreferrer">Reference context</a></div></div>
+                                <div class="field"><label for="badDebtPercent">Bad debt assumption (%)</label><input id="badDebtPercent" type="number" min="0" max="100" step="0.1" value="0"><div class="field-meta"><span>Turns gross invoicing into adjusted invoice revenue</span></div></div>
+                                <div class="field"><label for="vatMode">VAT mode</label><select id="vatMode"><option value="domestic">Domestic Finnish VAT</option><option value="reverse">Reverse charge / outside Finnish VAT scope</option></select><div class="field-meta"><span>VAT is modeled as pass-through cash</span><a href="https://www.vero.fi/en/detailed-guidance/guidance/48679/value-added-taxation-of-cross-border-supply-and-acquisition-of-services/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="vatRate">VAT rate (%)</label><input id="vatRate" type="number" min="0" max="100" step="0.1" value="25.5"><div class="field-meta"><span>Editable standard VAT assumption</span><a href="https://www.vero.fi/en/businesses-and-corporations/taxes-and-charges/vat/rates-of-vat/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="vatRegistrationThreshold">VAT registration warning threshold (€)</label><input id="vatRegistrationThreshold" type="number" min="0" step="100" value="20000"><div class="field-meta"><span>Configurable warning threshold</span><a href="https://www.vero.fi/en/About-us/newsroom/changes-in-taxation/vat-rules-for-small-business-will-change--vat-relief-to-be-abolished-new-exemption-extends-to-all-eu-countries/" target="_blank" rel="noreferrer">Source</a></div></div>
+                            </div>
+                        </div>
+                    </details>
+
+                    <details class="section" open>
+                        <summary>
+                            <div class="summary-title">
+                                <strong>Section C · Expenses</strong>
+                                <span>Business expenses are editable by category and separated into deductible vs non-deductible cash outflows.</span>
+                            </div>
+                            <span class="pill">Cash + tax impact</span>
+                        </summary>
+                        <div class="section-body">
+                            <div class="field-grid">
+                                <div class="field"><label for="expenseSoftware">Software / subscriptions per month (€)</label><input id="expenseSoftware" type="number" min="0" step="10" value="120"><div class="field-meta"><span>Deductible</span></div></div>
+                                <div class="field"><label for="expenseAccounting">Accounting / admin per month (€)</label><input id="expenseAccounting" type="number" min="0" step="10" value="140"><div class="field-meta"><span>Deductible</span></div></div>
+                                <div class="field"><label for="expenseWorkspace">Workspace / coworking per month (€)</label><input id="expenseWorkspace" type="number" min="0" step="10" value="0"><div class="field-meta"><span>Deductible</span></div></div>
+                                <div class="field"><label for="expenseTravel">Travel / client meetings per month (€)</label><input id="expenseTravel" type="number" min="0" step="10" value="80"><div class="field-meta"><span>Deductible</span></div></div>
+                                <div class="field"><label for="expenseEquipment">Equipment / devices per month (€)</label><input id="expenseEquipment" type="number" min="0" step="10" value="90"><div class="field-meta"><span>Deductible</span></div></div>
+                                <div class="field"><label for="expenseOtherDeductible">Other deductible expenses per month (€)</label><input id="expenseOtherDeductible" type="number" min="0" step="10" value="50"><div class="field-meta"><span>Deductible</span></div></div>
+                                <div class="field"><label for="expenseNonDeductible">Non-deductible monthly cash outflows (€)</label><input id="expenseNonDeductible" type="number" min="0" step="10" value="0"><div class="field-meta"><span>Cash impact only</span></div></div>
+                            </div>
+                        </div>
+                    </details>
+
+                    <details class="section" open>
+                        <summary>
+                            <div class="summary-title">
+                                <strong>Section D · YEL</strong>
+                                <span>Keep YEL clearly separate from turnover and taxable business profit.</span>
+                            </div>
+                            <span class="pill">Social security basis</span>
+                        </summary>
+                        <div class="section-body">
+                            <div class="field-grid">
+                                <div class="field"><label for="yelApplicable">YEL applicable?</label><select id="yelApplicable"><option value="true">Yes</option><option value="false">No</option></select><div class="field-meta"><span>Turns YEL contribution on/off</span><a href="https://www.tyoelake.fi/en/pensions-for-the-self-employed/what-is-yel-income/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="confirmedYelIncome">Confirmed YEL income, annual (€)</label><input id="confirmedYelIncome" type="number" min="0" step="100" value="30000"><div class="field-meta"><span>Used directly in contribution formula</span><a href="https://www.tyoelake.fi/en/pensions-for-the-self-employed/what-is-yel-income/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="recommendedYelIncome">Recommended / estimated YEL income (€)</label><input id="recommendedYelIncome" type="number" min="0" step="100" value="28000"><div class="field-meta"><span>Warning comparison only</span><a href="https://www.tyoelake.fi/en/pensions-for-the-self-employed/what-is-yel-income/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="yelRate">YEL rate (%)</label><input id="yelRate" type="number" min="0" max="100" step="0.1" value="24.4"><div class="field-meta"><span>Editable config, not hardcoded in logic</span><a href="https://www.tyoelake.fi/en/how-earnings-related-pensions-will-change-in-2026/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="newEntrepreneurDiscount">New entrepreneur discount?</label><select id="newEntrepreneurDiscount"><option value="true">Yes</option><option value="false">No</option></select><div class="field-meta"><span>Discount months can prorate annual cost</span><a href="https://www.tyoelake.fi/en/pensions-for-the-self-employed/what-is-yel-income/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="yelDiscountRate">YEL discount rate (%)</label><input id="yelDiscountRate" type="number" min="0" max="100" step="0.1" value="22"><div class="field-meta"><span>Editable assumption</span></div></div>
+                                <div class="field"><label for="discountMonthsRemaining">Discount months remaining</label><input id="discountMonthsRemaining" type="number" min="0" max="12" step="1" value="12"><div class="field-meta"><span>Prorates discount within the year</span></div></div>
+                                <div class="field"><label for="yelBillingFrequency">YEL billing frequency</label><select id="yelBillingFrequency"><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="annual">Annual</option></select><div class="field-meta"><span>Display context only in this prototype</span></div></div>
+                                <div class="field"><label for="yelMandatoryThreshold">YEL mandatory threshold (€)</label><input id="yelMandatoryThreshold" type="number" min="0" step="10" value="9208"><div class="field-meta"><span>Configurable threshold warning</span><a href="https://www.tyoelake.fi/en/pensions-for-the-self-employed/what-is-yel-income/" target="_blank" rel="noreferrer">Source</a></div></div>
+                            </div>
+                        </div>
+                    </details>
+
+                    <details class="section">
+                        <summary>
+                            <div class="summary-title">
+                                <strong>Section E · Health insurance contributions</strong>
+                                <span>Model medical care and daily allowance contributions with editable bases and manual override support.</span>
+                            </div>
+                            <span class="pill">Configurable base</span>
+                        </summary>
+                        <div class="section-body">
+                            <div class="field-grid">
+                                <div class="field"><label for="medicalRate">Medical care contribution rate (%)</label><input id="medicalRate" type="number" min="0" max="100" step="0.01" value="1.1"><div class="field-meta"><span>Editable official-style default</span><a href="https://www.vero.fi/en/businesses-and-corporations/taxes-and-charges/being-an-employer/social-insurance-contributions/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="dailyAllowanceRate">Daily allowance contribution rate (%)</label><input id="dailyAllowanceRate" type="number" min="0" max="100" step="0.01" value="1.11"><div class="field-meta"><span>Self-employed default estimate</span><a href="https://www.vero.fi/en/individuals/tax-cards-and-tax-returns/tax_card/tax-rate-and-income-ceiling/tax-bases/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="dailyAllowanceThreshold">Daily allowance threshold (€)</label><input id="dailyAllowanceThreshold" type="number" min="0" step="10" value="17255"><div class="field-meta"><span>Threshold before daily allowance rate applies</span><a href="https://www.vero.fi/en/individuals/tax-cards-and-tax-returns/tax_card/tax-rate-and-income-ceiling/tax-bases/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="healthBaseMode">Contribution base mode</label><select id="healthBaseMode"><option value="hybrid">Default: medical on earned income, daily allowance on YEL</option><option value="yel">Use YEL income for both</option><option value="earned">Use earned-income taxable base for both</option><option value="manual">Manual override</option></select><div class="field-meta"><span>Because exact basis can differ by case</span><a href="https://www.kela.fi/self-employment-income-and-contributions" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="manualMedicalBase">Manual medical contribution base (€)</label><input id="manualMedicalBase" type="number" min="0" step="100" value="0"><div class="field-meta"><span>Used only when manual mode is selected</span></div></div>
+                                <div class="field"><label for="manualDailyBase">Manual daily allowance base (€)</label><input id="manualDailyBase" type="number" min="0" step="100" value="0"><div class="field-meta"><span>Used only when manual mode is selected</span></div></div>
+                                <div class="field"><label for="manualHealthOverride">Manual total health-insurance override (€)</label><input id="manualHealthOverride" type="number" min="0" step="100" value="0"><div class="field-meta"><span>Leave at 0 to use calculated values</span></div></div>
+                            </div>
+                        </div>
+                    </details>
+
+                    <details class="section" open>
+                        <summary>
+                            <div class="summary-title">
+                                <strong>Section F · Income tax</strong>
+                                <span>Choose approximate bands, a tax-card style effective-rate model, or fully edit the JSON config.</span>
+                            </div>
+                            <span class="pill">Tax method switchable</span>
+                        </summary>
+                        <div class="section-body">
+                            <div class="field-grid">
+                                <div class="field"><label for="taxMethod">Tax method</label><select id="taxMethod"><option value="approximate">Approximate tax mode</option><option value="taxCard">Tax-card effective-rate mode</option><option value="configured">Configured tax-table mode</option></select><div class="field-meta"><span>Output labels reflect active method</span><a href="https://www.vero.fi/en/individuals/tax-cards-and-tax-returns/tax_card/tax-percentage-calculator/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="municipalTaxRate">Municipal tax rate (%)</label><input id="municipalTaxRate" type="number" min="0" max="100" step="0.01" value="7.9"><div class="field-meta"><span>Updates when municipality changes</span><a href="https://www.vero.fi/en/individuals/tax-cards-and-tax-returns/tax_card/tax-rate-and-income-ceiling/tax-bases/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="churchTaxRate">Church tax rate (%)</label><input id="churchTaxRate" type="number" min="0" max="100" step="0.01" value="1.5"><div class="field-meta"><span>Only applied if enabled</span><a href="https://www.vero.fi/en/individuals/tax-cards-and-tax-returns/tax_card/tax-rate-and-income-ceiling/tax-bases/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="effectiveTaxRate">User tax-card effective rate (%)</label><input id="effectiveTaxRate" type="number" min="0" max="100" step="0.1" value="28"><div class="field-meta"><span>Simple practical estimate mode</span><a href="https://www.vero.fi/en/individuals/tax-cards-and-tax-returns/tax_card/tax-percentage-calculator/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="additionalWithholdingRate">Additional withholding rate (%)</label><input id="additionalWithholdingRate" type="number" min="0" max="100" step="0.1" value="40"><div class="field-meta"><span>Used above tax-card income ceiling</span></div></div>
+                                <div class="field"><label for="annualIncomeCeiling">Annual tax-card income ceiling (€)</label><input id="annualIncomeCeiling" type="number" min="0" step="100" value="38000"><div class="field-meta"><span>Practical tax-card mode threshold</span></div></div>
+                                <div class="field"><label for="capitalTaxLower">Capital income tax lower rate (%)</label><input id="capitalTaxLower" type="number" min="0" max="100" step="0.1" value="30"><div class="field-meta"><span>Editable default</span><a href="https://www.vero.fi/en/individuals/property/rental_income/miten-veron-m%C3%A4%C3%A4r%C3%A4-lasketaan/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="capitalTaxUpper">Capital income tax upper rate (%)</label><input id="capitalTaxUpper" type="number" min="0" max="100" step="0.1" value="34"><div class="field-meta"><span>Editable default</span><a href="https://www.vero.fi/en/individuals/property/rental_income/miten-veron-m%C3%A4%C3%A4r%C3%A4-lasketaan/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="capitalTaxThreshold">Capital income threshold (€)</label><input id="capitalTaxThreshold" type="number" min="0" step="100" value="30000"><div class="field-meta"><span>Threshold between lower and upper capital rates</span><a href="https://www.vero.fi/en/individuals/property/rental_income/miten-veron-m%C3%A4%C3%A4r%C3%A4-lasketaan/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="stateTaxBands">State income tax bands JSON</label><textarea id="stateTaxBands"></textarea><div class="field-meta"><span>Editable configured tax table</span><a href="https://www.vero.fi/en/individuals/tax-cards-and-tax-returns/income/earned-income/tax-rates-on-pay-pensions-and-benefits/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="deductionConfig">Standard deductions / credits JSON</label><textarea id="deductionConfig"></textarea><div class="field-meta"><span>Approximate model assumptions</span><a href="https://www.vero.fi/en/individuals/deductions/what-can-I-deduct/these-deductions-are-calculated-automatically-by-the-tax-administration/" target="_blank" rel="noreferrer">Source</a></div></div>
+                            </div>
+                        </div>
+                    </details>
+
+                    <details class="section">
+                        <summary>
+                            <div class="summary-title">
+                                <strong>Section G · Comparison config and EOR / payroll context</strong>
+                                <span>Editable but not used in the main self-employed net-cash formula unless you extend the prototype.</span>
+                            </div>
+                            <span class="pill">Optional context</span>
+                        </summary>
+                        <div class="section-body">
+                            <div class="field-grid">
+                                <div class="field"><label for="employeeTyel">Employee TyEL (%)</label><input id="employeeTyel" type="number" min="0" max="100" step="0.1" value="7.3"><div class="field-meta"><span>Comparison assumption</span><a href="https://www.tyoelake.fi/en/in-the-future-all-employees-will-pay-the-same-amount-in-pension-contribution-in-2026-it-is-7-3-per-cent-of-their-wage/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="employerTyel">Employer TyEL (%)</label><input id="employerTyel" type="number" min="0" max="100" step="0.1" value="17.0"><div class="field-meta"><span>Comparison assumption</span><a href="https://www.tyoelake.fi/en/how-earnings-related-pensions-will-change-in-2026/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="employeeUnemployment">Employee unemployment insurance (%)</label><input id="employeeUnemployment" type="number" min="0" max="100" step="0.1" value="0.59"><div class="field-meta"><span>Comparison assumption</span><a href="https://www.vero.fi/en/businesses-and-corporations/taxes-and-charges/being-an-employer/social-insurance-contributions/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="employerUnemployment">Employer unemployment insurance (%)</label><input id="employerUnemployment" type="number" min="0" max="100" step="0.1" value="0.2"><div class="field-meta"><span>Comparison assumption</span><a href="https://www.vero.fi/en/businesses-and-corporations/taxes-and-charges/being-an-employer/social-insurance-contributions/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="employerHealthInsurance">Employer health insurance (%)</label><input id="employerHealthInsurance" type="number" min="0" max="100" step="0.1" value="1.91"><div class="field-meta"><span>Comparison assumption</span><a href="https://www.vero.fi/en/businesses-and-corporations/taxes-and-charges/being-an-employer/social-insurance-contributions/" target="_blank" rel="noreferrer">Source</a></div></div>
+                                <div class="field"><label for="eorFee">EOR fee assumption (%)</label><input id="eorFee" type="number" min="0" max="100" step="0.1" value="12"><div class="field-meta"><span>Reference benchmark only</span><a href="https://remote.com/global-hr/employer-of-record" target="_blank" rel="noreferrer">Source</a></div></div>
+                            </div>
+                        </div>
+                    </details>
+
+                    <details class="section" id="reverse-section">
+                        <summary>
+                            <div class="summary-title">
+                                <strong>Section H · Reverse solver</strong>
+                                <span>Estimate the monthly invoice amount needed to achieve a target monthly net cash outcome.</span>
+                            </div>
+                            <span class="pill">Mode 3</span>
+                        </summary>
+                        <div class="section-body">
+                            <div class="field-grid">
+                                <div class="field"><label for="targetNetMonthly">Target monthly net cash (€)</label><input id="targetNetMonthly" type="number" min="0" step="100" value="5000"><div class="field-meta"><span>Solver target</span></div></div>
+                                <div class="field"><label for="solverTolerance">Tolerance (€)</label><input id="solverTolerance" type="number" min="0.1" step="0.1" value="1"><div class="field-meta"><span>How close the solver should get</span></div></div>
+                                <div class="field"><label for="solverIterations">Maximum iterations</label><input id="solverIterations" type="number" min="1" max="1000" step="1" value="60"><div class="field-meta"><span>Binary-search style solve loop</span></div></div>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="top-controls">
+                    <div class="segmented" id="period-toggle" aria-label="Period view">
+                        <button class="active" data-period="monthly" type="button">Monthly view</button>
+                        <button data-period="annual" type="button">Annual view</button>
+                    </div>
+                    <div class="segmented" id="detail-toggle" aria-label="Detail level">
+                        <button class="active" data-detail="simple" type="button">Simple view</button>
+                        <button data-detail="detailed" type="button">Detailed tax view</button>
+                    </div>
+                </div>
+
+                <div class="kpi-grid" id="kpi-grid"></div>
+                <div id="summary-table-wrap"></div>
+                <div class="waterfall" id="waterfall"></div>
+                <div class="footer-note" id="active-method-note"></div>
+            </section>
+
+            <aside>
+                <section class="sidebar-card">
+                    <h2>Explanation view</h2>
+                    <div class="mode-note">
+                        Every line item below includes a plain-language explanation, the formula, confidence level, estimate vs exact-input labeling, and a source URL.
+                    </div>
+                    <div class="explanation-list" id="explanation-list"></div>
+                </section>
+                <section class="sidebar-card">
+                    <h2>Official source URLs</h2>
+                    <div class="source-list" id="source-list"></div>
+                </section>
+            </aside>
+        </div>
+    </div>
+
+    <script>
+        const OFFICIAL_SOURCES = {
+            yelIncome: "https://www.tyoelake.fi/en/pensions-for-the-self-employed/what-is-yel-income/",
+            pension2026: "https://www.tyoelake.fi/en/how-earnings-related-pensions-will-change-in-2026/",
+            kelaHealth: "https://www.kela.fi/self-employment-income-and-contributions",
+            socialInsurance: "https://www.vero.fi/en/businesses-and-corporations/taxes-and-charges/being-an-employer/social-insurance-contributions/",
+            filing: "https://www.vero.fi/en/businesses-and-corporations/taxes-and-charges/taxation-of-self-employed-individuals/instructions-for-filing/",
+            taxCalc: "https://www.vero.fi/en/individuals/tax-cards-and-tax-returns/tax_card/tax-percentage-calculator/",
+            taxRates: "https://www.vero.fi/en/individuals/tax-cards-and-tax-returns/income/earned-income/tax-rates-on-pay-pensions-and-benefits/",
+            taxBases: "https://www.vero.fi/en/individuals/tax-cards-and-tax-returns/tax_card/tax-rate-and-income-ceiling/tax-bases/",
+            vatCrossBorder: "https://www.vero.fi/en/detailed-guidance/guidance/48679/value-added-taxation-of-cross-border-supply-and-acquisition-of-services/",
+            vatOverview: "https://www.vero.fi/en/businesses-and-corporations/taxes-and-charges/vat/international-commerce/vat-on-international-supply-of-services/",
+            vatRates: "https://www.vero.fi/en/businesses-and-corporations/taxes-and-charges/vat/rates-of-vat/",
+            eorRemote: "https://remote.com/global-hr/employer-of-record",
+            eorDeel: "https://www.deel.com/hiring/employees/finland/"
+        };
+
+        const DEFAULT_CONFIG = {
+            taxYear: 2026,
+            municipalityRates: {
+                Helsinki: 7.9,
+                Espoo: 7.6,
+                Tampere: 8.1,
+                Turku: 7.9,
+                Oulu: 8.2,
+                Vantaa: 7.8,
+                "Jyväskylä": 8.0,
+                Lahti: 8.3,
+                Kuopio: 8.4,
+                "Rovaniemi": 8.6
+            },
+            churchTaxRates: {
+                default: 1.5
+            },
+            stateTaxBands: [
+                { min: 0, max: 21000, rate: 0.00, baseTax: 0 },
+                { min: 21000, max: 32000, rate: 0.12, baseTax: 0 },
+                { min: 32000, max: 53000, rate: 0.19, baseTax: 1320 },
+                { min: 53000, max: 88000, rate: 0.3025, baseTax: 5310 },
+                { min: 88000, max: null, rate: 0.34, baseTax: 15897.5 }
+            ],
+            deductions: {
+                basicAllowanceMax: 4265,
+                basicAllowanceReductionRate: 0.18,
+                basicAllowanceZeroAt: 27959,
+                earnedIncomeCreditRate: 0,
+                earnedIncomeCreditCap: 0,
+                publicBroadcastingTaxRate: 0.025,
+                publicBroadcastingThreshold: 15150,
+                publicBroadcastingCap: 160
+            },
+            vatRates: {
+                general: 0.255,
+                reduced: 0.135,
+                zero: 0
+            },
+            yelRate: 0.244,
+            yelMinimumThreshold: 9208,
+            yelDiscountRate: 0.22,
+            medicalCareContribution: 0.011,
+            dailyAllowanceContributionSelfEmployed: 0.0111,
+            dailyAllowanceThreshold: 17255,
+            capitalTaxLower: 0.30,
+            capitalTaxUpper: 0.34,
+            capitalTaxThreshold: 30000,
+            employeeTyel: 0.073,
+            employerTyel: 0.17,
+            employeeUnemploymentInsurance: 0.0059,
+            employerUnemploymentInsurance: 0.002,
+            employerHealthInsurance: 0.0191,
+            eorFeeAssumption: 0.12,
+            vatRegistrationThreshold: 20000,
+            priorYearSelectionEnabled: true,
+            currentYearSelectionEnabled: true,
+            fxRates: {
+                EUR: 1
+            }
+        };
+
+        const MODE_NOTES = {
+            quick: "Quick estimate mode keeps focus on monthly invoice, expenses, YEL, VAT, and an effective tax rate. Advanced config is still editable if you want to refine assumptions.",
+            taxAware: "Tax-aware mode uses municipality tax, church tax, capital-income split, tax bands, deductions, and health-insurance assumptions for a more granular Finnish estimate.",
+            reverse: "Reverse solver mode iterates on monthly invoicing until estimated monthly net cash is within tolerance of your target."
+        };
+
+        const state = {
+            mode: "quick",
+            period: "monthly",
+            detail: "simple"
+        };
+
+        const ids = [
+            "taxYear", "municipality", "churchMember", "taxResident", "healthCovered", "onlyIncome", "spouseInvolved", "businessType",
+            "priorYearAssets", "priorYearLiabilities", "priorYearCapitalGains", "capitalElection",
+            "monthlyInvoice", "invoiceMonths", "fxRate", "badDebtPercent", "vatMode", "vatRate", "vatRegistrationThreshold",
+            "expenseSoftware", "expenseAccounting", "expenseWorkspace", "expenseTravel", "expenseEquipment", "expenseOtherDeductible", "expenseNonDeductible",
+            "yelApplicable", "confirmedYelIncome", "recommendedYelIncome", "yelRate", "newEntrepreneurDiscount", "yelDiscountRate", "discountMonthsRemaining", "yelBillingFrequency", "yelMandatoryThreshold",
+            "medicalRate", "dailyAllowanceRate", "dailyAllowanceThreshold", "healthBaseMode", "manualMedicalBase", "manualDailyBase", "manualHealthOverride",
+            "taxMethod", "municipalTaxRate", "churchTaxRate", "effectiveTaxRate", "additionalWithholdingRate", "annualIncomeCeiling", "capitalTaxLower", "capitalTaxUpper", "capitalTaxThreshold", "stateTaxBands", "deductionConfig",
+            "employeeTyel", "employerTyel", "employeeUnemployment", "employerUnemployment", "employerHealthInsurance", "eorFee",
+            "targetNetMonthly", "solverTolerance", "solverIterations"
+        ];
+
+        const inputEls = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
+        const warningsEl = document.getElementById("warnings");
+        const kpiGridEl = document.getElementById("kpi-grid");
+        const summaryTableWrapEl = document.getElementById("summary-table-wrap");
+        const waterfallEl = document.getElementById("waterfall");
+        const explanationListEl = document.getElementById("explanation-list");
+        const sourceListEl = document.getElementById("source-list");
+        const modeNoteEl = document.getElementById("mode-note");
+        const activeMethodNoteEl = document.getElementById("active-method-note");
+
+        function euro(value) {
+            return new Intl.NumberFormat("en-FI", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value || 0);
+        }
+
+        function euroPrecise(value) {
+            return new Intl.NumberFormat("en-FI", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
+        }
+
+        function percentToDecimal(value) {
+            return Number(value || 0) / 100;
+        }
+
+        function safeNumber(value) {
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+
+        function boolValue(value) {
+            return value === true || value === "true";
+        }
+
+        function parseJson(text, fallback) {
+            try {
+                return JSON.parse(text);
+            } catch (error) {
+                return fallback;
+            }
+        }
+
+        function populateSelectors() {
+            inputEls.taxYear.innerHTML = [2025, 2026].map((year) => `<option value="${year}">${year}</option>`).join("");
+            inputEls.municipality.innerHTML = Object.keys(DEFAULT_CONFIG.municipalityRates)
+                .map((name) => `<option value="${name}">${name}</option>`)
+                .join("");
+            inputEls.taxYear.value = String(DEFAULT_CONFIG.taxYear);
+            inputEls.municipality.value = "Helsinki";
+            syncMunicipalityRate();
+        }
+
+        function loadDefaults() {
+            populateSelectors();
+            inputEls.stateTaxBands.value = JSON.stringify(DEFAULT_CONFIG.stateTaxBands, null, 2);
+            inputEls.deductionConfig.value = JSON.stringify(DEFAULT_CONFIG.deductions, null, 2);
+            inputEls.taxYear.value = String(DEFAULT_CONFIG.taxYear);
+            inputEls.municipalTaxRate.value = String(DEFAULT_CONFIG.municipalityRates.Helsinki);
+            inputEls.churchTaxRate.value = String(DEFAULT_CONFIG.churchTaxRates.default);
+            inputEls.vatRate.value = String(DEFAULT_CONFIG.vatRates.general * 100);
+            inputEls.yelRate.value = String(DEFAULT_CONFIG.yelRate * 100);
+            inputEls.yelMandatoryThreshold.value = String(DEFAULT_CONFIG.yelMinimumThreshold);
+            inputEls.yelDiscountRate.value = String(DEFAULT_CONFIG.yelDiscountRate * 100);
+            inputEls.medicalRate.value = String(DEFAULT_CONFIG.medicalCareContribution * 100);
+            inputEls.dailyAllowanceRate.value = String(DEFAULT_CONFIG.dailyAllowanceContributionSelfEmployed * 100);
+            inputEls.dailyAllowanceThreshold.value = String(DEFAULT_CONFIG.dailyAllowanceThreshold);
+            inputEls.capitalTaxLower.value = String(DEFAULT_CONFIG.capitalTaxLower * 100);
+            inputEls.capitalTaxUpper.value = String(DEFAULT_CONFIG.capitalTaxUpper * 100);
+            inputEls.capitalTaxThreshold.value = String(DEFAULT_CONFIG.capitalTaxThreshold);
+            inputEls.employeeTyel.value = String(DEFAULT_CONFIG.employeeTyel * 100);
+            inputEls.employerTyel.value = String(DEFAULT_CONFIG.employerTyel * 100);
+            inputEls.employeeUnemployment.value = String(DEFAULT_CONFIG.employeeUnemploymentInsurance * 100);
+            inputEls.employerUnemployment.value = String(DEFAULT_CONFIG.employerUnemploymentInsurance * 100);
+            inputEls.employerHealthInsurance.value = String(DEFAULT_CONFIG.employerHealthInsurance * 100);
+            inputEls.eorFee.value = String(DEFAULT_CONFIG.eorFeeAssumption * 100);
+            inputEls.vatRegistrationThreshold.value = String(DEFAULT_CONFIG.vatRegistrationThreshold);
+        }
+
+        function syncMunicipalityRate() {
+            const municipality = inputEls.municipality.value;
+            const rate = DEFAULT_CONFIG.municipalityRates[municipality] ?? DEFAULT_CONFIG.municipalityRates.Helsinki;
+            inputEls.municipalTaxRate.value = String(rate);
+        }
+
+        function readInputs(overrides = {}) {
+            return {
+                taxYear: safeNumber(inputEls.taxYear.value),
+                municipality: inputEls.municipality.value,
+                churchMember: boolValue(inputEls.churchMember.value),
+                taxResident: boolValue(inputEls.taxResident.value),
+                healthCovered: boolValue(inputEls.healthCovered.value),
+                onlyIncome: boolValue(inputEls.onlyIncome.value),
+                spouseInvolved: boolValue(inputEls.spouseInvolved.value),
+                priorYearAssets: safeNumber(inputEls.priorYearAssets.value),
+                priorYearLiabilities: safeNumber(inputEls.priorYearLiabilities.value),
+                priorYearCapitalGains: safeNumber(inputEls.priorYearCapitalGains.value),
+                capitalElection: safeNumber(inputEls.capitalElection.value),
+                monthlyInvoice: safeNumber(inputEls.monthlyInvoice.value),
+                invoiceMonths: safeNumber(inputEls.invoiceMonths.value),
+                fxRate: safeNumber(inputEls.fxRate.value),
+                badDebtPercent: percentToDecimal(inputEls.badDebtPercent.value),
+                vatMode: inputEls.vatMode.value,
+                vatRate: percentToDecimal(inputEls.vatRate.value),
+                vatRegistrationThreshold: safeNumber(inputEls.vatRegistrationThreshold.value),
+                monthlyDeductibleExpenses: [
+                    safeNumber(inputEls.expenseSoftware.value),
+                    safeNumber(inputEls.expenseAccounting.value),
+                    safeNumber(inputEls.expenseWorkspace.value),
+                    safeNumber(inputEls.expenseTravel.value),
+                    safeNumber(inputEls.expenseEquipment.value),
+                    safeNumber(inputEls.expenseOtherDeductible.value)
+                ].reduce((sum, value) => sum + value, 0),
+                monthlyNonDeductibleExpenses: safeNumber(inputEls.expenseNonDeductible.value),
+                yelApplicable: boolValue(inputEls.yelApplicable.value),
+                confirmedYelIncome: safeNumber(inputEls.confirmedYelIncome.value),
+                recommendedYelIncome: safeNumber(inputEls.recommendedYelIncome.value),
+                yelRate: percentToDecimal(inputEls.yelRate.value),
+                newEntrepreneurDiscount: boolValue(inputEls.newEntrepreneurDiscount.value),
+                yelDiscountRate: percentToDecimal(inputEls.yelDiscountRate.value),
+                discountMonthsRemaining: safeNumber(inputEls.discountMonthsRemaining.value),
+                yelBillingFrequency: inputEls.yelBillingFrequency.value,
+                yelMandatoryThreshold: safeNumber(inputEls.yelMandatoryThreshold.value),
+                medicalRate: percentToDecimal(inputEls.medicalRate.value),
+                dailyAllowanceRate: percentToDecimal(inputEls.dailyAllowanceRate.value),
+                dailyAllowanceThreshold: safeNumber(inputEls.dailyAllowanceThreshold.value),
+                healthBaseMode: inputEls.healthBaseMode.value,
+                manualMedicalBase: safeNumber(inputEls.manualMedicalBase.value),
+                manualDailyBase: safeNumber(inputEls.manualDailyBase.value),
+                manualHealthOverride: safeNumber(inputEls.manualHealthOverride.value),
+                taxMethod: inputEls.taxMethod.value,
+                municipalTaxRate: percentToDecimal(inputEls.municipalTaxRate.value),
+                churchTaxRate: percentToDecimal(inputEls.churchTaxRate.value),
+                effectiveTaxRate: percentToDecimal(inputEls.effectiveTaxRate.value),
+                additionalWithholdingRate: percentToDecimal(inputEls.additionalWithholdingRate.value),
+                annualIncomeCeiling: safeNumber(inputEls.annualIncomeCeiling.value),
+                capitalTaxLower: percentToDecimal(inputEls.capitalTaxLower.value),
+                capitalTaxUpper: percentToDecimal(inputEls.capitalTaxUpper.value),
+                capitalTaxThreshold: safeNumber(inputEls.capitalTaxThreshold.value),
+                stateTaxBands: parseJson(inputEls.stateTaxBands.value, DEFAULT_CONFIG.stateTaxBands),
+                deductions: parseJson(inputEls.deductionConfig.value, DEFAULT_CONFIG.deductions),
+                employeeTyel: percentToDecimal(inputEls.employeeTyel.value),
+                employerTyel: percentToDecimal(inputEls.employerTyel.value),
+                employeeUnemployment: percentToDecimal(inputEls.employeeUnemployment.value),
+                employerUnemployment: percentToDecimal(inputEls.employerUnemployment.value),
+                employerHealthInsurance: percentToDecimal(inputEls.employerHealthInsurance.value),
+                eorFee: percentToDecimal(inputEls.eorFee.value),
+                targetNetMonthly: safeNumber(inputEls.targetNetMonthly.value),
+                solverTolerance: safeNumber(inputEls.solverTolerance.value),
+                solverIterations: safeNumber(inputEls.solverIterations.value),
+                ...overrides
+            };
+        }
+
+        function stateTax(income, bands) {
+            if (income <= 0) {
+                return 0;
+            }
+
+            const matchingBand = bands.find((band) => income >= band.min && (band.max === null || income <= band.max)) || bands[bands.length - 1];
+            return Math.max(0, safeNumber(matchingBand.baseTax) + Math.max(0, income - safeNumber(matchingBand.min)) * safeNumber(matchingBand.rate));
+        }
+
+        function basicAllowance(income, deductions) {
+            if (income <= 0) {
+                return 0;
+            }
+
+            const max = safeNumber(deductions.basicAllowanceMax);
+            const reductionRate = safeNumber(deductions.basicAllowanceReductionRate);
+            const zeroAt = safeNumber(deductions.basicAllowanceZeroAt);
+
+            if (income <= max) {
+                return income;
+            }
+            if (income >= zeroAt) {
+                return 0;
+            }
+            return Math.max(0, max - (income - max) * reductionRate);
+        }
+
+        function publicBroadcastingTax(totalIncome, deductions) {
+            if (totalIncome <= safeNumber(deductions.publicBroadcastingThreshold)) {
+                return 0;
+            }
+            return Math.min(safeNumber(deductions.publicBroadcastingCap), totalIncome * safeNumber(deductions.publicBroadcastingTaxRate));
+        }
+
+        function calculateTaxCardModel(earnedIncome, inputs) {
+            if (earnedIncome <= 0) {
+                return 0;
+            }
+            const basePortion = Math.min(earnedIncome, inputs.annualIncomeCeiling);
+            const overflow = Math.max(0, earnedIncome - inputs.annualIncomeCeiling);
+            return basePortion * inputs.effectiveTaxRate + overflow * inputs.additionalWithholdingRate;
+        }
+
+        function calculateCapitalTax(capitalIncome, inputs) {
+            if (capitalIncome <= 0) {
+                return 0;
+            }
+            const lowerBase = Math.min(capitalIncome, inputs.capitalTaxThreshold);
+            const upperBase = Math.max(0, capitalIncome - inputs.capitalTaxThreshold);
+            return lowerBase * inputs.capitalTaxLower + upperBase * inputs.capitalTaxUpper;
+        }
+
+        function runForwardCalculation(rawInputs) {
+            const inputs = { ...rawInputs };
+            const annualInvoiceExVat = inputs.monthlyInvoice * inputs.invoiceMonths;
+            const annualInvoiceEur = annualInvoiceExVat * inputs.fxRate;
+            const adjustedAnnualInvoice = annualInvoiceEur * (1 - inputs.badDebtPercent);
+
+            const annualVatCollected = inputs.vatMode === "domestic" ? adjustedAnnualInvoice * inputs.vatRate : 0;
+            const annualCashCollectedInclVat = adjustedAnnualInvoice + annualVatCollected;
+            const annualNetRevenueForIncomeTax = adjustedAnnualInvoice;
+
+            const annualDeductibleExpenses = inputs.monthlyDeductibleExpenses * 12;
+            const annualNonDeductibleExpenses = inputs.monthlyNonDeductibleExpenses * 12;
+            const businessResultBeforeYel = annualNetRevenueForIncomeTax - annualDeductibleExpenses;
+
+            let annualYelContribution = 0;
+            if (inputs.yelApplicable) {
+                annualYelContribution = inputs.confirmedYelIncome * inputs.yelRate;
+                if (inputs.newEntrepreneurDiscount && inputs.discountMonthsRemaining > 0) {
+                    const discountFactor = 1 - inputs.yelDiscountRate * Math.min(12, inputs.discountMonthsRemaining) / 12;
+                    annualYelContribution *= discountFactor;
+                }
+            }
+
+            const annualBusinessIncomeAfterYel = businessResultBeforeYel - annualYelContribution;
+            const netAssets = inputs.priorYearAssets - inputs.priorYearLiabilities;
+            const capitalIncomeBase = Math.max(0, netAssets) * inputs.capitalElection;
+            const capitalIncomePortion = annualBusinessIncomeAfterYel <= 0 || inputs.capitalElection === 0
+                ? 0
+                : Math.min(Math.max(0, annualBusinessIncomeAfterYel), capitalIncomeBase);
+            const earnedIncomePortion = annualBusinessIncomeAfterYel - capitalIncomePortion;
+            const lossScenario = annualBusinessIncomeAfterYel <= 0;
+
+            const capitalIncomeTax = calculateCapitalTax(capitalIncomePortion, inputs);
+
+            let approximateTaxableBase = Math.max(0, earnedIncomePortion);
+            const basicAllowanceValue = basicAllowance(approximateTaxableBase, inputs.deductions);
+            approximateTaxableBase = Math.max(0, approximateTaxableBase - basicAllowanceValue);
+
+            let earnedIncomeTax = 0;
+            let earnedIncomeTaxLabel = "rough tax model";
+            if (inputs.taxMethod === "taxCard") {
+                earnedIncomeTax = calculateTaxCardModel(Math.max(0, earnedIncomePortion), inputs);
+                earnedIncomeTaxLabel = "tax-card model";
+            } else {
+                const stateComponent = stateTax(approximateTaxableBase, inputs.stateTaxBands);
+                const municipalComponent = approximateTaxableBase * inputs.municipalTaxRate;
+                const churchComponent = inputs.churchMember ? approximateTaxableBase * inputs.churchTaxRate : 0;
+                const earnedCredit = Math.min(
+                    safeNumber(inputs.deductions.earnedIncomeCreditCap),
+                    Math.max(0, approximateTaxableBase) * safeNumber(inputs.deductions.earnedIncomeCreditRate)
+                );
+                earnedIncomeTax = Math.max(0, stateComponent + municipalComponent + churchComponent - earnedCredit);
+                earnedIncomeTaxLabel = inputs.taxMethod === "configured" ? "imported/configured tax-table model" : "rough tax model";
+            }
+
+            let medicalBase = 0;
+            let dailyBase = 0;
+
+            if (!inputs.healthCovered) {
+                medicalBase = 0;
+                dailyBase = 0;
+            } else if (inputs.healthBaseMode === "manual") {
+                medicalBase = inputs.manualMedicalBase;
+                dailyBase = inputs.manualDailyBase;
+            } else if (inputs.healthBaseMode === "yel") {
+                medicalBase = Math.max(0, inputs.confirmedYelIncome);
+                dailyBase = Math.max(0, inputs.confirmedYelIncome);
+            } else if (inputs.healthBaseMode === "earned") {
+                medicalBase = Math.max(0, earnedIncomePortion);
+                dailyBase = Math.max(0, earnedIncomePortion);
+            } else {
+                medicalBase = Math.max(0, earnedIncomePortion);
+                dailyBase = Math.max(0, inputs.confirmedYelIncome);
+            }
+
+            const medicalCareContribution = medicalBase * inputs.medicalRate;
+            const dailyAllowanceContribution = dailyBase >= inputs.dailyAllowanceThreshold
+                ? dailyBase * inputs.dailyAllowanceRate
+                : 0;
+            const calculatedHealthInsurance = medicalCareContribution + dailyAllowanceContribution;
+            const annualHealthInsuranceContribution = inputs.manualHealthOverride > 0
+                ? inputs.manualHealthOverride
+                : calculatedHealthInsurance;
+
+            const publicBroadcasting = publicBroadcastingTax(Math.max(0, earnedIncomePortion) + Math.max(0, capitalIncomePortion), inputs.deductions);
+            const totalPersonalTaxAndContributions = earnedIncomeTax + capitalIncomeTax + annualHealthInsuranceContribution + publicBroadcasting;
+
+            const annualEstimatedNetCash = annualCashCollectedInclVat
+                - annualVatCollected
+                - annualDeductibleExpenses
+                - annualNonDeductibleExpenses
+                - annualYelContribution
+                - totalPersonalTaxAndContributions;
+
+            const annualBusinessCashAfterExpensesBeforePersonalTaxes = annualCashCollectedInclVat
+                - annualVatCollected
+                - annualDeductibleExpenses
+                - annualNonDeductibleExpenses
+                - annualYelContribution;
+
+            const monthly = {
+                invoiceExVat: adjustedAnnualInvoice / 12,
+                vatCharged: annualVatCollected / 12,
+                cashCollectedInclVat: annualCashCollectedInclVat / 12,
+                vatPayable: annualVatCollected / 12,
+                netBusinessRevenueAfterVat: annualNetRevenueForIncomeTax / 12,
+                deductibleExpenses: annualDeductibleExpenses / 12,
+                yelContribution: annualYelContribution / 12,
+                healthInsuranceEstimate: annualHealthInsuranceContribution / 12,
+                taxPrepaymentEstimate: (earnedIncomeTax + capitalIncomeTax + publicBroadcasting) / 12,
+                netCashToEntrepreneur: annualEstimatedNetCash / 12,
+                businessCashBeforePersonalTaxes: annualBusinessCashAfterExpensesBeforePersonalTaxes / 12
+            };
+
+            const annual = {
+                invoicingExVat: adjustedAnnualInvoice,
+                vatCollected: annualVatCollected,
+                deductibleExpenses: annualDeductibleExpenses,
+                businessProfitBeforeYel: businessResultBeforeYel,
+                yelIncome: inputs.confirmedYelIncome,
+                yelContribution: annualYelContribution,
+                earnedIncomePortion,
+                capitalIncomePortion,
+                taxOnEarnedIncome: earnedIncomeTax,
+                taxOnCapitalIncome: capitalIncomeTax,
+                healthInsuranceContributions: annualHealthInsuranceContribution,
+                netCashToEntrepreneur: annualEstimatedNetCash,
+                businessCashBeforePersonalTaxes: annualBusinessCashAfterExpensesBeforePersonalTaxes,
+                nonDeductibleExpenses: annualNonDeductibleExpenses,
+                businessIncomeAfterYel: annualBusinessIncomeAfterYel,
+                publicBroadcastingTax: publicBroadcasting,
+                netAssets,
+                capitalIncomeBase
+            };
+
+            const explanations = buildExplanations({
+                inputs,
+                annual,
+                monthly,
+                annualInvoiceExVat,
+                annualInvoiceEur,
+                adjustedAnnualInvoice,
+                annualCashCollectedInclVat,
+                annualNetRevenueForIncomeTax,
+                annualVatCollected,
+                annualDeductibleExpenses,
+                annualNonDeductibleExpenses,
+                businessResultBeforeYel,
+                annualYelContribution,
+                annualBusinessIncomeAfterYel,
+                capitalIncomePortion,
+                earnedIncomePortion,
+                capitalIncomeTax,
+                earnedIncomeTax,
+                earnedIncomeTaxLabel,
+                annualHealthInsuranceContribution,
+                medicalCareContribution,
+                dailyAllowanceContribution,
+                publicBroadcasting,
+                totalPersonalTaxAndContributions,
+                annualEstimatedNetCash,
+                annualBusinessCashAfterExpensesBeforePersonalTaxes,
+                lossScenario,
+                basicAllowanceValue,
+                approximateTaxableBase
+            });
+
+            const warnings = buildWarnings({
+                inputs,
+                annual,
+                monthly,
+                annualInvoiceExVat,
+                adjustedAnnualInvoice,
+                annualBusinessIncomeAfterYel,
+                lossScenario,
+                earnedIncomeTaxLabel
+            });
+
+            return { inputs, monthly, annual, explanations, warnings, earnedIncomeTaxLabel, totalPersonalTaxAndContributions, lossScenario };
+        }
+
+        function solveRequiredInvoice(inputs) {
+            const tolerance = Math.max(0.1, inputs.solverTolerance || 1);
+            const maxIterations = Math.max(1, inputs.solverIterations || 60);
+            let low = 0;
+            let high = Math.max(inputs.targetNetMonthly * 4, 1000);
+            let result = runForwardCalculation({ ...inputs, monthlyInvoice: high });
+
+            let guard = 0;
+            while (result.monthly.netCashToEntrepreneur < inputs.targetNetMonthly && guard < 40) {
+                high *= 1.7;
+                result = runForwardCalculation({ ...inputs, monthlyInvoice: high });
+                guard += 1;
+            }
+
+            let best = result;
+            for (let i = 0; i < maxIterations; i += 1) {
+                const guess = (low + high) / 2;
+                const trial = runForwardCalculation({ ...inputs, monthlyInvoice: guess });
+                best = trial;
+                const error = trial.monthly.netCashToEntrepreneur - inputs.targetNetMonthly;
+                if (Math.abs(error) <= tolerance) {
+                    return { solved: true, invoice: guess, iterations: i + 1, result: trial, error };
+                }
+                if (error < 0) {
+                    low = guess;
+                } else {
+                    high = guess;
+                }
+            }
+            const invoice = (low + high) / 2;
+            const finalResult = runForwardCalculation({ ...inputs, monthlyInvoice: invoice });
+            return {
+                solved: Math.abs(finalResult.monthly.netCashToEntrepreneur - inputs.targetNetMonthly) <= tolerance,
+                invoice,
+                iterations: maxIterations,
+                result: finalResult,
+                error: finalResult.monthly.netCashToEntrepreneur - inputs.targetNetMonthly
+            };
+        }
+
+        function buildExplanations(ctx) {
+            const { inputs, annual, monthly, annualInvoiceExVat, annualInvoiceEur, adjustedAnnualInvoice, annualVatCollected, annualNetRevenueForIncomeTax, annualDeductibleExpenses, annualNonDeductibleExpenses, businessResultBeforeYel, annualYelContribution, annualBusinessIncomeAfterYel, capitalIncomePortion, earnedIncomePortion, capitalIncomeTax, earnedIncomeTax, annualHealthInsuranceContribution, publicBroadcasting, totalPersonalTaxAndContributions, annualEstimatedNetCash, annualBusinessCashAfterExpensesBeforePersonalTaxes, earnedIncomeTaxLabel, basicAllowanceValue, approximateTaxableBase } = ctx;
+
+            return [
+                {
+                    label: "Adjusted annual invoicing excl. VAT",
+                    explanation: "Annual invoicing starts from monthly invoice amount, multiplied by invoice months and FX rate, then reduced by the bad-debt assumption.",
+                    formula: `monthly_invoice_ex_vat × invoice_months × fx_rate × (1 - bad_debt_percent) = ${euroPrecise(adjustedAnnualInvoice)}`,
+                    value: adjustedAnnualInvoice,
+                    estimateType: "estimate only",
+                    confidence: "configurable assumption",
+                    source: OFFICIAL_SOURCES.vatRates
+                },
+                {
+                    label: "Annual VAT collected",
+                    explanation: "If domestic Finnish VAT is used, VAT is collected on top of the adjusted invoicing. In reverse-charge / outside-scope mode, this is zero.",
+                    formula: inputs.vatMode === "domestic"
+                        ? `adjusted_annual_invoice × vat_rate = ${euroPrecise(annualVatCollected)}`
+                        : `reverse charge mode → 0`,
+                    value: annualVatCollected,
+                    estimateType: "configurable assumption",
+                    confidence: "configurable assumption",
+                    source: OFFICIAL_SOURCES.vatCrossBorder
+                },
+                {
+                    label: "Annual deductible expenses",
+                    explanation: "Deductible business expenses reduce business result before YEL and are aggregated from the monthly expense categories.",
+                    formula: `12 × monthly deductible expense sum = ${euroPrecise(annualDeductibleExpenses)}`,
+                    value: annualDeductibleExpenses,
+                    estimateType: "exact input",
+                    confidence: "exact",
+                    source: OFFICIAL_SOURCES.filing
+                },
+                {
+                    label: "Annual YEL contribution",
+                    explanation: "YEL is calculated from confirmed YEL income rather than turnover or taxable profit, then optionally reduced by a prorated new-entrepreneur discount.",
+                    formula: inputs.yelApplicable
+                        ? `confirmed_yel_income × yel_rate × discount_adjustment = ${euroPrecise(annualYelContribution)}`
+                        : `YEL not applicable → 0`,
+                    value: annualYelContribution,
+                    estimateType: "configurable assumption",
+                    confidence: "configurable assumption",
+                    source: OFFICIAL_SOURCES.yelIncome
+                },
+                {
+                    label: "Business income after YEL",
+                    explanation: "This is the amount left after deductible expenses and YEL, and is the base used for the earned-income vs capital-income split.",
+                    formula: `business_result_before_yel (${euroPrecise(businessResultBeforeYel)}) - annual_yel_contribution (${euroPrecise(annualYelContribution)}) = ${euroPrecise(annualBusinessIncomeAfterYel)}`,
+                    value: annualBusinessIncomeAfterYel,
+                    estimateType: "estimate only",
+                    confidence: "configurable assumption",
+                    source: OFFICIAL_SOURCES.filing
+                },
+                {
+                    label: "Capital-income portion",
+                    explanation: "Capital income is limited by the chosen percentage of net assets and can never exceed business income after YEL.",
+                    formula: `min(business_income_after_yel, max(0, net_assets) × capital_return_rate) = ${euroPrecise(capitalIncomePortion)}`,
+                    value: capitalIncomePortion,
+                    estimateType: "estimate only",
+                    confidence: "configurable assumption",
+                    source: OFFICIAL_SOURCES.filing
+                },
+                {
+                    label: "Earned-income portion",
+                    explanation: "The part of business income after YEL that remains after the capital-income allocation is treated as earned income in this prototype.",
+                    formula: `annual_business_income_after_yel - capital_income_portion = ${euroPrecise(earnedIncomePortion)}`,
+                    value: earnedIncomePortion,
+                    estimateType: "estimate only",
+                    confidence: "configurable assumption",
+                    source: OFFICIAL_SOURCES.filing
+                },
+                {
+                    label: "Earned-income tax",
+                    explanation: `The current output uses the ${earnedIncomeTaxLabel}. In approximate/configured mode, the model applies state tax bands, municipal tax, optional church tax, and deductions. In tax-card mode, it applies the effective rate and additional rate above the ceiling.`,
+                    formula: inputs.taxMethod === "taxCard"
+                        ? `min(earned_income, annual_income_ceiling) × effective_rate + overflow × additional_rate = ${euroPrecise(earnedIncomeTax)}`
+                        : `state_tax(${euroPrecise(approximateTaxableBase)}) + municipal + church - credits = ${euroPrecise(earnedIncomeTax)}; basic allowance used: ${euroPrecise(basicAllowanceValue)}`,
+                    value: earnedIncomeTax,
+                    estimateType: "estimate only",
+                    confidence: inputs.taxMethod === "taxCard" ? "exact input" : "configurable assumption",
+                    source: OFFICIAL_SOURCES.taxCalc
+                },
+                {
+                    label: "Capital-income tax",
+                    explanation: "Capital income is taxed using the lower rate up to the threshold and the upper rate on the excess.",
+                    formula: `lower tranche + upper tranche = ${euroPrecise(capitalIncomeTax)}`,
+                    value: capitalIncomeTax,
+                    estimateType: "estimate only",
+                    confidence: "configurable assumption",
+                    source: OFFICIAL_SOURCES.taxBases
+                },
+                {
+                    label: "Health-insurance contributions",
+                    explanation: "Medical care and daily allowance contributions are calculated using the selected contribution base mode, unless a manual annual override is supplied.",
+                    formula: inputs.manualHealthOverride > 0
+                        ? `manual override = ${euroPrecise(annualHealthInsuranceContribution)}`
+                        : `medical + daily allowance = ${euroPrecise(annualHealthInsuranceContribution)}`,
+                    value: annualHealthInsuranceContribution,
+                    estimateType: inputs.manualHealthOverride > 0 ? "exact input" : "estimate only",
+                    confidence: "configurable assumption",
+                    source: OFFICIAL_SOURCES.kelaHealth
+                },
+                {
+                    label: "Estimated annual net cash",
+                    explanation: "This is the after-expense, after-YEL, after-tax estimate of cash potentially available to the entrepreneur. VAT is treated as pass-through and removed from profit.",
+                    formula: `cash_collected_incl_vat - vat - deductible_expenses - non_deductible_expenses - yel - personal_taxes_and_contributions = ${euroPrecise(annualEstimatedNetCash)}`,
+                    value: annualEstimatedNetCash,
+                    estimateType: "estimate only",
+                    confidence: "configurable assumption",
+                    source: OFFICIAL_SOURCES.taxRates
+                },
+                {
+                    label: "Monthly net cash",
+                    explanation: "Monthly view is the annual estimate divided by 12 so the entrepreneur can compare ongoing invoicing to practical drawdown expectations.",
+                    formula: `annual_estimated_net_cash / 12 = ${euroPrecise(monthly.netCashToEntrepreneur)}`,
+                    value: monthly.netCashToEntrepreneur,
+                    estimateType: "estimate only",
+                    confidence: "configurable assumption",
+                    source: OFFICIAL_SOURCES.taxRates
+                },
+                {
+                    label: "Business cash after expenses before personal taxes",
+                    explanation: "This alternative display helps separate business-level cash after expenses and YEL from the personal tax layer.",
+                    formula: `annual_cash_collected_incl_vat - vat - deductible_expenses - non_deductible_expenses - yel = ${euroPrecise(annualBusinessCashAfterExpensesBeforePersonalTaxes)}`,
+                    value: annualBusinessCashAfterExpensesBeforePersonalTaxes,
+                    estimateType: "estimate only",
+                    confidence: "configurable assumption",
+                    source: OFFICIAL_SOURCES.taxRates
+                },
+                {
+                    label: "Public broadcasting tax",
+                    explanation: "Included as a configurable assumption in the approximate model because it often affects practical prepayment and net-cash expectations.",
+                    formula: `min(cap, rate × total taxable income above threshold) = ${euroPrecise(publicBroadcasting)}`,
+                    value: publicBroadcasting,
+                    estimateType: "configurable assumption",
+                    confidence: "configurable assumption",
+                    source: OFFICIAL_SOURCES.taxBases
+                },
+                {
+                    label: "Annual non-deductible expenses",
+                    explanation: "These do not reduce taxable business income in this simplified model, but they still reduce net cash.",
+                    formula: `12 × monthly_non_deductible_expenses = ${euroPrecise(annualNonDeductibleExpenses)}`,
+                    value: annualNonDeductibleExpenses,
+                    estimateType: "exact input",
+                    confidence: "exact",
+                    source: OFFICIAL_SOURCES.filing
+                },
+                {
+                    label: "Total personal tax and contributions",
+                    explanation: "Combined burden of earned-income tax, capital-income tax, health-insurance contributions, and broadcasting tax in the selected model.",
+                    formula: `earned_income_tax + capital_income_tax + health_insurance + public_broadcasting_tax = ${euroPrecise(totalPersonalTaxAndContributions)}`,
+                    value: totalPersonalTaxAndContributions,
+                    estimateType: "estimate only",
+                    confidence: "configurable assumption",
+                    source: OFFICIAL_SOURCES.taxCalc
+                }
+            ];
+        }
+
+        function buildWarnings(ctx) {
+            const { inputs, annual, adjustedAnnualInvoice, annualBusinessIncomeAfterYel, lossScenario, earnedIncomeTaxLabel } = ctx;
+            const warnings = [];
+
+            if (inputs.monthlyInvoice < 0) {
+                warnings.push({ type: "warning", text: "Invoice amount cannot be negative." });
+            }
+
+            if (inputs.vatRate < 0 || inputs.vatRate > 1) {
+                warnings.push({ type: "warning", text: "VAT rate must be between 0 and 1 (0% to 100%)." });
+            }
+
+            const rateChecks = [inputs.yelRate, inputs.medicalRate, inputs.dailyAllowanceRate, inputs.effectiveTaxRate, inputs.additionalWithholdingRate, inputs.municipalTaxRate, inputs.churchTaxRate, inputs.capitalTaxLower, inputs.capitalTaxUpper];
+            if (rateChecks.some((value) => value < 0 || value > 1)) {
+                warnings.push({ type: "warning", text: "Tax and contribution rates must stay between 0 and 1 (0% to 100%)." });
+            }
+
+            if (inputs.vatMode === "domestic" && adjustedAnnualInvoice < inputs.vatRegistrationThreshold) {
+                warnings.push({ type: "info", text: `Domestic VAT mode selected, but adjusted annual invoicing ${euro(adjustedAnnualInvoice)} is below the current warning threshold ${euro(inputs.vatRegistrationThreshold)}. Check VAT registration status and exemptions.` });
+            }
+
+            if (inputs.yelApplicable && inputs.confirmedYelIncome < inputs.yelMandatoryThreshold) {
+                warnings.push({ type: "info", text: `Confirmed YEL income ${euro(inputs.confirmedYelIncome)} is below the editable YEL mandatory-threshold warning ${euro(inputs.yelMandatoryThreshold)}. YEL may not be mandatory.` });
+            }
+
+            if (inputs.yelApplicable && adjustedAnnualInvoice > 0 && inputs.confirmedYelIncome > adjustedAnnualInvoice * 0.9) {
+                warnings.push({ type: "warning", text: "Confirmed YEL income looks high relative to adjusted turnover. Double-check whether the work-input value is realistic." });
+            }
+
+            if (inputs.recommendedYelIncome > 0) {
+                const diff = Math.abs(inputs.confirmedYelIncome - inputs.recommendedYelIncome) / inputs.recommendedYelIncome;
+                if (diff > 0.35) {
+                    warnings.push({ type: "warning", text: "Confirmed YEL income differs materially from the recommendation input. Review whether the confirmed YEL basis reflects actual work input." });
+                }
+            }
+
+            if (inputs.badDebtPercent > 0.2) {
+                warnings.push({ type: "warning", text: "Bad debt assumption exceeds 20%. This is unusually high for a stable B2B invoicing model." });
+            }
+
+            if (lossScenario) {
+                warnings.push({ type: "warning", text: "Loss / no taxable profit scenario detected: business income after YEL is at or below zero, so capital income is forced to zero and taxes may materially differ in reality due to loss treatment." });
+            }
+
+            if (!inputs.taxResident) {
+                warnings.push({ type: "info", text: "Non-resident status selected. This prototype still applies a Finland-centered estimate, so review actual cross-border tax treatment separately." });
+            }
+
+            if (!inputs.onlyIncome) {
+                warnings.push({ type: "info", text: "Other income streams are not modeled in detail here. Actual earned-income taxation can differ if you have salary, benefits, rental income, or other capital income." });
+            }
+
+            if (inputs.spouseInvolved) {
+                warnings.push({ type: "info", text: "Spouse involvement can affect allocation and filing details. This prototype keeps the calculation at a single-taxpayer estimate level." });
+            }
+
+            if (inputs.taxMethod === "taxCard" && Math.abs(inputs.effectiveTaxRate - 0.28) > 0.18 && inputs.annualIncomeCeiling < 15000) {
+                warnings.push({ type: "warning", text: "Effective tax rate and annual income ceiling combination looks unusual. Check your tax card inputs." });
+            }
+
+            warnings.push({ type: "success", text: `Current earned-income method label: ${earnedIncomeTaxLabel}.` });
+            return warnings;
+        }
+
+        function renderWarnings(warnings) {
+            warningsEl.innerHTML = warnings.map((item) => `<div class="${item.type}">${item.text}</div>`).join("");
+        }
+
+        function renderKpis(result, reverseSolve) {
+            const periodData = result[state.period];
+            const cards = [
+                { label: state.period === "monthly" ? "Net cash to entrepreneur / month" : "Annual net cash to entrepreneur", value: periodData.netCashToEntrepreneur },
+                { label: state.period === "monthly" ? "Business cash before personal taxes / month" : "Annual business cash before personal taxes", value: periodData.businessCashBeforePersonalTaxes },
+                { label: state.period === "monthly" ? "Taxes + prepayments / month" : "Annual personal tax + contributions", value: state.period === "monthly" ? result.totalPersonalTaxAndContributions / 12 : result.totalPersonalTaxAndContributions },
+                { label: state.period === "monthly" ? "YEL contribution / month" : "Annual YEL contribution", value: state.period === "monthly" ? result.annual.yelContribution / 12 : result.annual.yelContribution }
+            ];
+
+            if (state.mode === "reverse" && reverseSolve) {
+                cards.unshift({ label: "Solved invoice excl. VAT / month", value: reverseSolve.invoice });
+            }
+
+            kpiGridEl.innerHTML = cards.map((card) => `
+                <div class="kpi-card">
+                    <span>${card.label}</span>
+                    <strong>${euro(card.value)}</strong>
+                </div>
+            `).join("");
+        }
+
+        function buildSummaryRows(result) {
+            const { monthly, annual } = result;
+            const monthlyRows = [
+                ["Monthly invoice amount excl. VAT", monthly.invoiceExVat],
+                ["VAT charged on invoice", monthly.vatCharged],
+                ["Cash collected incl. VAT", monthly.cashCollectedInclVat],
+                ["VAT payable to tax authority", monthly.vatPayable],
+                ["Net business revenue after VAT", monthly.netBusinessRevenueAfterVat],
+                ["Monthly deductible business expenses", monthly.deductibleExpenses],
+                ["Monthly YEL contribution", monthly.yelContribution],
+                ["Monthly health-insurance contributions estimate", monthly.healthInsuranceEstimate],
+                ["Monthly tax prepayment estimate", monthly.taxPrepaymentEstimate],
+                ["Business cash after expenses before personal taxes", monthly.businessCashBeforePersonalTaxes],
+                ["Estimated monthly net cash to entrepreneur", monthly.netCashToEntrepreneur, true]
+            ];
+
+            const annualRows = [
+                ["Annual invoicing excl. VAT", annual.invoicingExVat],
+                ["Annual VAT collected", annual.vatCollected],
+                ["Annual deductible business expenses", annual.deductibleExpenses],
+                ["Annual business profit before YEL", annual.businessProfitBeforeYel],
+                ["Annual YEL income", annual.yelIncome],
+                ["Annual YEL contribution", annual.yelContribution],
+                ["Annual earned-income portion", annual.earnedIncomePortion],
+                ["Annual capital-income portion", annual.capitalIncomePortion],
+                ["Annual tax on earned income", annual.taxOnEarnedIncome],
+                ["Annual tax on capital income", annual.taxOnCapitalIncome],
+                ["Annual health-insurance contributions", annual.healthInsuranceContributions],
+                ["Annual public broadcasting tax", annual.publicBroadcastingTax],
+                ["Business cash after expenses before personal taxes", annual.businessCashBeforePersonalTaxes],
+                ["Annual net cash to entrepreneur", annual.netCashToEntrepreneur, true]
+            ];
+
+            return state.period === "monthly" ? monthlyRows : annualRows;
+        }
+
+        function renderSummaryTable(result) {
+            const rows = buildSummaryRows(result);
+            const detailedRows = state.detail === "detailed"
+                ? rows
+                : rows.filter(([label]) => !["Annual public broadcasting tax", "Business cash after expenses before personal taxes", "Monthly tax prepayment estimate"].includes(label));
+
+            summaryTableWrapEl.innerHTML = `
+                <table class="summary-table">
+                    <thead>
+                        <tr><th>Line item</th><th>${state.period === "monthly" ? "Monthly" : "Annual"} amount</th></tr>
+                    </thead>
+                    <tbody>
+                        ${detailedRows.map(([label, value, net]) => `<tr class="${net ? "net-row" : ""}"><td>${label}</td><td>${euro(value)}</td></tr>`).join("")}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderWaterfall(result) {
+            const periodData = result[state.period];
+            const base = Math.max(1, Math.abs(state.period === "monthly" ? periodData.cashCollectedInclVat : result.annual.invoicingExVat + result.annual.vatCollected));
+            const rows = state.period === "monthly"
+                ? [
+                    ["Cash collected", periodData.cashCollectedInclVat, "linear-gradient(90deg, #7aa8ff, #57d9e7)"],
+                    ["Less VAT", periodData.vatPayable, "linear-gradient(90deg, #ffb972, #ff8f70)"],
+                    ["Less expenses", periodData.deductibleExpenses, "linear-gradient(90deg, #ffb972, #ff8f70)"],
+                    ["Less YEL", periodData.yelContribution, "linear-gradient(90deg, #ffb972, #ff8f70)"],
+                    ["Less taxes", periodData.taxPrepaymentEstimate + periodData.healthInsuranceEstimate, "linear-gradient(90deg, #ffb972, #ff8f70)"],
+                    ["Net cash", periodData.netCashToEntrepreneur, "linear-gradient(90deg, #59e6b7, #7ea7ff)"]
+                ]
+                : [
+                    ["Invoice excl. VAT", result.annual.invoicingExVat, "linear-gradient(90deg, #7aa8ff, #57d9e7)"],
+                    ["Less deductible expenses", result.annual.deductibleExpenses, "linear-gradient(90deg, #ffb972, #ff8f70)"],
+                    ["Less YEL", result.annual.yelContribution, "linear-gradient(90deg, #ffb972, #ff8f70)"],
+                    ["Less tax + contributions", result.totalPersonalTaxAndContributions, "linear-gradient(90deg, #ffb972, #ff8f70)"],
+                    ["Net cash", result.annual.netCashToEntrepreneur, "linear-gradient(90deg, #59e6b7, #7ea7ff)"]
+                ];
+
+            waterfallEl.innerHTML = rows.map(([label, value, fill]) => `
+                <div class="waterfall-row">
+                    <div class="waterfall-label">${label}</div>
+                    <div class="waterfall-track"><div class="waterfall-fill" style="width:${Math.max(2, Math.min(100, Math.abs(value) / base * 100))}%; background:${fill};"></div></div>
+                    <div class="waterfall-value">${euro(value)}</div>
+                </div>
+            `).join("");
+        }
+
+        function renderExplanations(result) {
+            explanationListEl.innerHTML = result.explanations.map((item) => `
+                <article class="explanation-item">
+                    <h3>${item.label}</h3>
+                    <div>${item.explanation}</div>
+                    <div><strong>Formula:</strong> ${item.formula}</div>
+                    <div class="explanation-meta">
+                        <span>Estimate label: ${item.estimateType}</span>
+                        <span>Confidence: ${item.confidence}</span>
+                        <span>Value: ${euro(item.value)}</span>
+                    </div>
+                    <div><a href="${item.source}" target="_blank" rel="noreferrer">Source URL</a></div>
+                </article>
+            `).join("");
+        }
+
+        function renderSources() {
+            sourceListEl.innerHTML = Object.entries(OFFICIAL_SOURCES).map(([key, url]) => `
+                <div class="field">
+                    <label>${key}</label>
+                    <a href="${url}" target="_blank" rel="noreferrer">${url}</a>
+                </div>
+            `).join("");
+        }
+
+        function applyModeVisibility() {
+            document.querySelectorAll("#mode-toggle button").forEach((button) => {
+                button.classList.toggle("active", button.dataset.mode === state.mode);
+            });
+            document.querySelectorAll("#period-toggle button").forEach((button) => {
+                button.classList.toggle("active", button.dataset.period === state.period);
+            });
+            document.querySelectorAll("#detail-toggle button").forEach((button) => {
+                button.classList.toggle("active", button.dataset.detail === state.detail);
+            });
+            modeNoteEl.textContent = MODE_NOTES[state.mode];
+            document.getElementById("reverse-section").open = state.mode === "reverse";
+        }
+
+        function update() {
+            applyModeVisibility();
+            const inputs = readInputs();
+            let reverseSolve = null;
+            let result = runForwardCalculation(inputs);
+
+            if (state.mode === "reverse") {
+                reverseSolve = solveRequiredInvoice(inputs);
+                result = reverseSolve.result;
+                inputEls.monthlyInvoice.value = reverseSolve.invoice.toFixed(2);
+                result.warnings.unshift({
+                    type: reverseSolve.solved ? "success" : "info",
+                    text: `Reverse solver ${reverseSolve.solved ? "solved" : "stopped"} after ${reverseSolve.iterations} iterations. Required monthly invoice excl. VAT: ${euroPrecise(reverseSolve.invoice)}. Residual error: ${euroPrecise(reverseSolve.error)}.`
+                });
+            }
+
+            renderWarnings(result.warnings);
+            renderKpis(result, reverseSolve);
+            renderSummaryTable(result);
+            renderWaterfall(result);
+            renderExplanations(result);
+            activeMethodNoteEl.textContent = `Active earned-income tax method: ${result.earnedIncomeTaxLabel}. VAT is modeled as pass-through cash. All rates and thresholds above remain editable.`;
+        }
+
+        document.getElementById("mode-toggle").addEventListener("click", (event) => {
+            const mode = event.target.dataset.mode;
+            if (!mode) return;
+            state.mode = mode;
+            update();
+        });
+
+        document.getElementById("period-toggle").addEventListener("click", (event) => {
+            const period = event.target.dataset.period;
+            if (!period) return;
+            state.period = period;
+            update();
+        });
+
+        document.getElementById("detail-toggle").addEventListener("click", (event) => {
+            const detail = event.target.dataset.detail;
+            if (!detail) return;
+            state.detail = detail;
+            update();
+        });
+
+        document.getElementById("reset-defaults").addEventListener("click", () => {
+            window.location.reload();
+        });
+
+        inputEls.municipality.addEventListener("change", () => {
+            syncMunicipalityRate();
+            update();
+        });
+
+        Object.values(inputEls).forEach((element) => {
+            if (!element || element.id === "municipality") {
+                return;
+            }
+            element.addEventListener("input", update);
+            element.addEventListener("change", update);
+        });
+
+        loadDefaults();
+        renderSources();
+        update();
+    </script>
+</body>
+</html>
