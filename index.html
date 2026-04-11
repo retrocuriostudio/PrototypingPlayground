@@ -24,8 +24,9 @@
     }
 
     video {
-      width: 100vw;
-      height: 100vh;
+      width: min(100vw, 960px);
+      height: auto;
+      max-height: 100vh;
       object-fit: contain;
       object-position: center;
       pointer-events: none;
