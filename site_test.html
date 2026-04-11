@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Me | Prototyping Playground</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg-primary: #0b0f14;
+            --color-bg-secondary: #121826;
+            --color-bg-elevated: #161d2f;
+            --color-text-primary: #e6e9f0;
+            --color-text-secondary: #9aa4bf;
+            --color-text-disabled: #5b647a;
+            --color-accent-primary: #6cf2c2;
+            --color-accent-secondary: #5aa9ff;
+            --color-accent-danger: #ff6b6b;
+            --color-border-subtle: rgba(255, 255, 255, 0.08);
+            --color-glow-primary: rgba(108, 242, 194, 0.65);
+            --color-glow-secondary: rgba(90, 169, 255, 0.55);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            font-weight: 400;
+            background: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 4vw, 3.5rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        h2 {
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        p {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--color-text-secondary);
+        }
+
+        .section {
+            padding: 64px 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--color-bg-secondary);
+            border-radius: 14px;
+            padding: 32px;
+            border: 1px solid var(--color-border-subtle);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+        }
+
+        .button {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 28px;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            color: #0b0f14;
+            background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
+            border: none;
+            cursor: pointer;
+            overflow: hidden;
+            text-decoration: none;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .button::before {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            background: inherit;
+            filter: blur(18px);
+            opacity: 0.6;
+            z-index: -1;
+        }
+
+        .button::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -120%;
+            width: 120%;
+            height: 100%;
+            background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 0 30px var(--color-glow-primary), 0 0 60px rgba(108, 242, 194, 0.25);
+        }
+
+        .button:hover::after {
+            left: 120%;
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button--secondary {
+            background: transparent;
+            color: var(--color-text-primary);
+            border: 1px solid var(--color-border-subtle);
+        }
+
+        .button--secondary::before {
+            display: none;
+        }
+
+        .button--secondary:hover {
+            border-color: var(--color-accent-secondary);
+            box-shadow: 0 0 24px var(--color-glow-secondary);
+        }
+
+        .hero {
+            display: grid;
+            gap: 32px;
+        }
+
+        .hero p {
+            max-width: 640px;
+        }
+
+        .hero-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .glow-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--color-accent-secondary), transparent);
+            opacity: 0.5;
+            margin: 32px 0;
+        }
+
+        .link-grid {
+            display: grid;
+            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        }
+
+        .link-card {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .small {
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <main class="section">
+        <div class="hero">
+            <div>
+                <h1>Hey, I'm Alessandro</h1>
+                <p>
+                    I design, prototype, and build interactive experiences that blend gameplay with bold visuals. Welcome to my
+                    personal playground—here you can explore my experiments, learn more about my work, and connect with me.
+                </p>
+            </div>
+            <div class="hero-links">
+                <a class="button" href="Prototypes.html">Explore Prototypes</a>
+                <a class="button button--secondary" href="coming-soon.html">
+                    View Portfolio
+                </a>
+                <a class="button button--secondary" href="coming-soon.html">Email Me</a>
+            </div>
+            <div class="glow-divider"></div>
+            <div>
+                <h2>Find me online</h2>
+                <p class="small">Follow along for updates, experiments, and behind-the-scenes looks.</p>
+            </div>
+            <div class="link-grid">
+                <div class="card link-card">
+                    <h3>LinkedIn</h3>
+                    <p class="small">Professional updates and collaborations.</p>
+                    <a class="button button--secondary" href="coming-soon.html">Connect</a>
+                </div>
+                <div class="card link-card">
+                    <h3>GitHub</h3>
+                    <p class="small">Open-source experiments and builds.</p>
+                    <a class="button button--secondary" href="https://github.com" target="_blank" rel="noreferrer">Follow</a>
+                </div>
+                <div class="card link-card">
+                    <h3>Twitter / X</h3>
+                    <p class="small">Quick thoughts and prototype drops.</p>
+                    <a class="button button--secondary" href="coming-soon.html">Follow</a>
+                </div>
+                <div class="card link-card">
+                    <h3>Instagram</h3>
+                    <p class="small">Visual diaries and in-progress snapshots.</p>
+                    <a class="button button--secondary" href="coming-soon.html">Follow</a>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
