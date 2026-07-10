@@ -259,82 +259,6 @@
             color: #f44336;
         }
 
-        /* Debug Button */
-        #debug-btn {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: none;
-            background: rgba(0, 0, 0, 0.5);
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            z-index: 999;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-        }
-
-        #debug-btn:active {
-            transform: scale(0.95);
-        }
-
-        /* Debug Overlay */
-        #debug-overlay {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            min-width: 300px;
-            max-width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        #debug-overlay h3 {
-            margin-bottom: 20px;
-            color: #333;
-            text-align: center;
-        }
-
-        #debug-close-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            border: none;
-            background: #f44336;
-            color: white;
-            font-size: 18px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .debug-section {
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .debug-section:last-child {
-            border-bottom: none;
-        }
-
-        .debug-section p {
-            margin-bottom: 10px;
-            color: #333;
-        }
-
         .debug-section button {
             width: 100%;
             padding: 12px;
@@ -358,9 +282,11 @@
             margin-top: 5px;
             text-align: center;
         }
+
     </style>
 </head>
 <body>
+    <script src="../../debug-widget.js" data-name="Poker PVP" data-version="1"></script>
     <div id="game-container">
         <!-- Score Section -->
         <div id="score-section">
@@ -415,27 +341,19 @@
             <button id="result-continue-btn" class="btn btn-primary">Continue</button>
         </div>
 
-        <!-- Debug Button -->
-        <button id="debug-btn" title="Debug">🐛</button>
-
-        <!-- Debug Overlay -->
-        <div id="debug-overlay" class="hidden">
-            <h3>Debug Settings</h3>
-            <button id="debug-close-btn">✕</button>
-            <div class="debug-section">
-                <p><strong>Version:</strong> <span id="version-display">0.6</span></p>
-            </div>
-            <div class="debug-section">
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;">
-                    <input type="checkbox" id="discards-allowed-toggle" checked style="width: 20px; height: 20px; cursor: pointer;">
-                    <span><strong>Discards Allowed</strong></span>
-                </label>
-            </div>
-            <div class="debug-section">
-                <button id="force-reset-btn">Reset Game</button>
-            </div>
-        </div>
     </div>
+
+    <template id="debug-extras">
+        <div class="debug-section">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;">
+                <input type="checkbox" id="discards-allowed-toggle" checked style="width: 20px; height: 20px; cursor: pointer;">
+                <span><strong>Discards Allowed</strong></span>
+            </label>
+        </div>
+        <div class="debug-section">
+            <button id="force-reset-btn">Reset Game</button>
+        </div>
+    </template>
 
     <script>
         // Game State
@@ -1256,26 +1174,27 @@
             document.getElementById('ready-btn').addEventListener('click', onReadyClicked);
             document.getElementById('discard-btn').addEventListener('click', onDiscardClicked);
 
-            // Debug overlay
-            document.getElementById('debug-btn').addEventListener('click', () => {
-                document.getElementById('debug-overlay').classList.remove('hidden');
-            });
+            // Debug panel controls live in the shared widget's panel, which
+            // adopts them from the debug-extras template on DOMContentLoaded.
+            // This runs after an await, so the DOM may already be loaded.
+            const bindDebugControls = () => {
+                document.getElementById('force-reset-btn').addEventListener('click', () => {
+                    document.getElementById('debug-overlay').classList.add('hidden');
+                    resetGame();
+                });
 
-            document.getElementById('debug-close-btn').addEventListener('click', () => {
-                document.getElementById('debug-overlay').classList.add('hidden');
-            });
-
-            document.getElementById('force-reset-btn').addEventListener('click', () => {
-                document.getElementById('debug-overlay').classList.add('hidden');
-                resetGame();
-            });
-
-            // Discards allowed toggle
-            document.getElementById('discards-allowed-toggle').addEventListener('change', (e) => {
-                gameState.discardsAllowed = e.target.checked;
-                // Update UI to show/hide discard button
-                setPhase(gameState.phase);
-            });
+                // Discards allowed toggle
+                document.getElementById('discards-allowed-toggle').addEventListener('change', (e) => {
+                    gameState.discardsAllowed = e.target.checked;
+                    // Update UI to show/hide discard button
+                    setPhase(gameState.phase);
+                });
+            };
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', bindDebugControls);
+            } else {
+                bindDebugControls();
+            }
         }
 
         // Start the game

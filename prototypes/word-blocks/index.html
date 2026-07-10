@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <script src="../../debug-widget.js" data-name="Daily Word Blocks" data-version="1"></script>
     <div id="game-container">
         <div id="longest-word-container" class="hidden">
             <button id="challenge-friend-btn" class="challenge-btn">Challenge Friend</button>
@@ -26,38 +27,6 @@
             </div>
         </div>
 
-        <button id="debug-btn" title="Debug">🐛</button>
-
-        <div id="debug-overlay" class="hidden">
-            <h3>Config Settings</h3>
-            <button id="debug-close-btn">✕</button>
-            <div class="debug-section">
-                <p><strong>Version:</strong> <span id="version-display">1.5</span></p>
-                <p style="font-size: 0.9em; color: #666; margin-top: 5px;">Note: Increment by 0.1 for each change unless specified otherwise</p>
-            </div>
-            <div class="debug-section">
-                <label for="disappear-time-slider">
-                    <strong>Disappearing Animation Time:</strong> <span id="disappear-time-value">300</span>ms
-                </label>
-                <input type="range" id="disappear-time-slider" min="100" max="1000" value="300" step="50">
-            </div>
-            <div class="debug-section">
-                <label for="fall-time-slider">
-                    <strong>Block Falling Time:</strong> <span id="fall-time-value">300</span>ms
-                </label>
-                <input type="range" id="fall-time-slider" min="100" max="1000" value="300" step="50">
-            </div>
-            <div class="debug-section">
-                <label for="block-size-slider">
-                    <strong>Block Size:</strong> <span id="block-size-value">50</span>px
-                </label>
-                <input type="range" id="block-size-slider" min="30" max="80" value="50" step="5">
-            </div>
-            <div class="debug-section">
-                <button id="force-restart-btn">Force Restart</button>
-            </div>
-        </div>
-
         <div id="challenge-popup" class="hidden">
             <div class="popup-content">
                 <button id="popup-close-btn" class="popup-close">✕</button>
@@ -67,6 +36,29 @@
             </div>
         </div>
     </div>
+    <template id="debug-extras">
+        <div class="debug-section">
+            <label for="disappear-time-slider">
+                <strong>Disappearing Animation Time:</strong> <span id="disappear-time-value">300</span>ms
+            </label>
+            <input type="range" id="disappear-time-slider" min="100" max="1000" value="300" step="50">
+        </div>
+        <div class="debug-section">
+            <label for="fall-time-slider">
+                <strong>Block Falling Time:</strong> <span id="fall-time-value">300</span>ms
+            </label>
+            <input type="range" id="fall-time-slider" min="100" max="1000" value="300" step="50">
+        </div>
+        <div class="debug-section">
+            <label for="block-size-slider">
+                <strong>Block Size:</strong> <span id="block-size-value">50</span>px
+            </label>
+            <input type="range" id="block-size-slider" min="30" max="80" value="50" step="5">
+        </div>
+        <div class="debug-section">
+            <button id="force-restart-btn">Force Restart</button>
+        </div>
+    </template>
     <script src="game.js"></script>
 </body>
 </html>

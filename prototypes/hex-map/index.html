@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <script src="../../debug-widget.js" data-name="Hex Map Explorer" data-version="1"></script>
     <div id="game-container">
         <canvas id="game-canvas"></canvas>
         <div id="tile-selection" class="hidden">
@@ -63,27 +64,20 @@
         <div id="tile-counter" style="display: none;">
             Tiles remaining: <span id="remaining-count">36</span>
         </div>
-        <button id="debug-btn" title="Debug">🐛</button>
-        <div id="debug-overlay" class="hidden">
-            <h3>Debug Settings</h3>
-            <button id="debug-close-btn">✕</button>
-            <div class="debug-section">
-                <!-- Version: Increment by 0.1 for each change unless specified otherwise -->
-                <p><strong>Version:</strong> <span id="version-display">1.1</span></p>
-            </div>
-            <div class="debug-section">
-                <button id="force-restart-btn">Force Restart</button>
-            </div>
-            <div class="debug-section">
-                <label for="hex-radius-slider">Debug Tap Radius: <span id="hex-radius-value">60</span>px</label>
-                <input type="range" id="hex-radius-slider" min="10" max="200" value="60" step="1">
-            </div>
-            <div class="debug-section">
-                <label for="resources-popup-duration">Resources Found Duration: <span id="resources-popup-duration-value">2000</span>ms</label>
-                <input type="range" id="resources-popup-duration" min="500" max="5000" value="2000" step="100">
-            </div>
-        </div>
     </div>
+    <template id="debug-extras">
+        <div class="debug-section">
+            <button id="force-restart-btn">Force Restart</button>
+        </div>
+        <div class="debug-section">
+            <label for="hex-radius-slider">Debug Tap Radius: <span id="hex-radius-value">60</span>px</label>
+            <input type="range" id="hex-radius-slider" min="10" max="200" value="60" step="1">
+        </div>
+        <div class="debug-section">
+            <label for="resources-popup-duration">Resources Found Duration: <span id="resources-popup-duration-value">2000</span>ms</label>
+            <input type="range" id="resources-popup-duration" min="500" max="5000" value="2000" step="100">
+        </div>
+    </template>
     <script src="game.js"></script>
 </body>
 </html>

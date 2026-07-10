@@ -1,5 +1,4 @@
 // Coin Toss Game - XP and Money
-// VERSION: 0.3
 
 class CoinTossGame {
     constructor() {
@@ -14,10 +13,6 @@ class CoinTossGame {
         this.flipsLeftCounter = document.getElementById('flipsLeftCounter');
         this.gameOverPopup = document.getElementById('gameOver');
         this.playAgainBtn = document.getElementById('playAgainBtn');
-        this.debugBtn = document.getElementById('debug-btn');
-        this.debugOverlay = document.getElementById('debug-overlay');
-        this.debugCloseBtn = document.getElementById('debug-close-btn');
-        this.versionDisplay = document.getElementById('version-display');
 
         // Game state
         this.xp = 0;
@@ -25,7 +20,6 @@ class CoinTossGame {
         this.money = 0;
         this.flipsLeft = 100;
         this.isFlipping = false;
-        this.version = '0.3';
 
         this.initialize();
     }
@@ -34,13 +28,6 @@ class CoinTossGame {
         // Set up event listeners
         this.flipButton.addEventListener('click', () => this.flipCoin());
         this.playAgainBtn.addEventListener('click', () => this.resetGame());
-        this.debugBtn.addEventListener('click', () => this.toggleDebug());
-        this.debugCloseBtn.addEventListener('click', () => this.toggleDebug());
-
-        // Update version display
-        if (this.versionDisplay) {
-            this.versionDisplay.textContent = this.version;
-        }
 
         // Initialize UI
         this.updateUI();
@@ -144,10 +131,6 @@ class CoinTossGame {
         this.flipButton.disabled = false;
 
         this.updateUI();
-    }
-
-    toggleDebug() {
-        this.debugOverlay.classList.toggle('hidden');
     }
 }
 

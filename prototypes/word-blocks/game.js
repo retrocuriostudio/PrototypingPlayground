@@ -9,7 +9,6 @@ class WordBlocksGame {
         this.debugOverlay = document.getElementById('debug-overlay');
         this.debugCloseBtn = document.getElementById('debug-close-btn');
         this.forceRestartBtn = document.getElementById('force-restart-btn');
-        this.versionDisplay = document.getElementById('version-display');
 
         // Config sliders
         this.disappearTimeSlider = document.getElementById('disappear-time-slider');
@@ -33,9 +32,6 @@ class WordBlocksGame {
         this.popupCloseBtn = document.getElementById('popup-close-btn');
         this.challengeText = document.getElementById('challenge-text');
         this.copyBtn = document.getElementById('copy-btn');
-
-        // Version info
-        this.version = '1.5';
 
         // Seeded random number generator for daily puzzles
         this.seedRng();
@@ -110,11 +106,6 @@ class WordBlocksGame {
         this.initializeGrid();
         this.renderGrid();
         this.updateProgress();
-
-        // Update version display
-        if (this.versionDisplay) {
-            this.versionDisplay.textContent = this.version;
-        }
     }
 
     async loadLetterDistribution() {
@@ -224,14 +215,14 @@ class WordBlocksGame {
             e.stopPropagation();
         }, { passive: true });
 
-        // Debug buttons - support both click and touch events for better mobile support
-        this.debugBtn.addEventListener('click', () => this.openDebugPanel());
+        // The shared debug widget handles click events on its button and close
+        // control; these touchend handlers keep the panel usable on mobile,
+        // where preventDefault suppresses the synthesized click.
         this.debugBtn.addEventListener('touchend', (e) => {
             e.preventDefault();
-            this.openDebugPanel();
+            this.debugOverlay.classList.toggle('hidden');
         });
 
-        this.debugCloseBtn.addEventListener('click', () => this.closeDebugPanel());
         this.debugCloseBtn.addEventListener('touchend', (e) => {
             e.preventDefault();
             this.closeDebugPanel();
@@ -612,10 +603,6 @@ class WordBlocksGame {
         if (this.longestWord && this.longestWordContainer) {
             this.longestWordContainer.classList.remove('hidden');
         }
-    }
-
-    openDebugPanel() {
-        this.debugOverlay.classList.remove('hidden');
     }
 
     closeDebugPanel() {
