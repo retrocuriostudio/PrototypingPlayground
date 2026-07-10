@@ -55,6 +55,12 @@
       "private": false
     },
     {
+      "name": "Heightmap → Normal Tool",
+      "description": "Author normal maps for pixel art by painting per-pixel distance steps over an Aseprite sprite, with live heightmap and normal-map previews.",
+      "path": "prototypes/heightmap-normal-tool/index.html",
+      "private": false
+    },
+    {
       "name": "Finland TMI B2B Calculator",
       "description": "Break down a Finnish sole trader (tmi) B2B invoice into taxes, expenses, and take-home pay.",
       "path": "prototypes/tmi-b2b-calculator/index.html",
