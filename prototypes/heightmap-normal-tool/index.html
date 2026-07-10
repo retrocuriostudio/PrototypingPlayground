@@ -55,7 +55,8 @@
   #toolbar {
     width: 172px; flex: 0 0 auto; background: var(--panel);
     border-right: 1px solid var(--border); padding: 8px;
-    display: flex; flex-direction: column; gap: 8px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 8px;
+    overflow-y: auto; overflow-x: hidden; touch-action: pan-y;
   }
   .toolrow { display: flex; gap: 4px; flex-wrap: wrap; }
   .toolrow button { flex: 1 1 45%; }
@@ -69,8 +70,13 @@
   .section h4 { margin: 0 0 2px; font-size: 12px; color: var(--dim);
     text-transform: uppercase; letter-spacing: .5px; }
 
-  #editorwrap { flex: 1 1 auto; position: relative; min-width: 0; }
-  #editor { position: absolute; inset: 0; width: 100%; height: 100%;
+  /* Scroll container: canvas is CSS-scaled to sprite×zoom and overflows into
+     native scrollbars; margin:auto centers it while it still fits. */
+  #editorwrap { flex: 1 1 auto; position: relative; min-width: 0;
+    display: flex; overflow: auto; }
+  #editor { margin: auto; flex: 0 0 auto;
+    image-rendering: pixelated; background: #2a2a2a;
+    outline: 1px solid #555;
     touch-action: none; cursor: crosshair; }
 
   #previews {
@@ -102,12 +108,19 @@
 </style>
 </head>
 <body>
-<script src="../../debug-widget.js" data-name="Heightmap → Normal Tool" data-version="2"></script>
+<script src="../../debug-widget.js" data-name="Heightmap → Normal Tool" data-version="3"></script>
 
 <div id="topbar">
   <button id="btnLoad">Load .aseprite / PNG</button>
   <button id="btnResume">Resume (distance PNGs)</button>
   <span id="spriteName">no file loaded</span>
+  <label style="gap:4px">Zoom <select id="zoomSel">
+    <option value="100">100%</option>
+    <option value="200">200%</option>
+    <option value="300">300%</option>
+    <option value="400">400%</option>
+    <option value="500">500%</option>
+  </select></label>
   <button id="btnExport">Export PNG sequences</button>
   <button id="btnSettingsJSON">Save settings JSON</button>
 </div>
@@ -170,10 +183,10 @@
   </div>
 
   <div id="editorwrap">
-    <canvas id="editor"></canvas>
+    <canvas id="editor" class="hidden"></canvas>
     <div id="drop">Load an .aseprite or PNG to start<br>
-      <small>paint distance steps · wheel = zoom · space/middle-drag = pan ·
-      right-click = erase · Ctrl+Z = undo</small></div>
+      <small>paint distance steps · zoom via the Zoom dropdown ·
+      pan with the scrollbars · right-click = erase · Ctrl+Z = undo</small></div>
   </div>
 
   <div id="previews">
@@ -203,12 +216,11 @@ const S = {
   frame: 0,
   tool: 'paint',
   step: 1,               // selected step for paint/fill
-  zoom: 8, panX: 0, panY: 0,
-  painting: false, panning: false,
+  zoom: 1,               // CSS scale factor (zoomSel percent / 100)
+  painting: false,
   strokeVisited: null,   // Set of pixel indices changed this stroke (raise/lower)
   undo: [],              // [{frame, buffer}]
   onion: false,
-  spaceDown: false,
 };
 
 const $ = id => document.getElementById(id);
@@ -286,6 +298,7 @@ async function loadFile(file) {
   $('spriteName').textContent =
     `${file.name} — ${S.sprite.width}×${S.sprite.height}, ${S.composites.length} frame(s)`;
   $('drop').classList.add('hidden');
+  $('editor').classList.remove('hidden');
   $('framebar').classList.toggle('hidden', S.composites.length <= 1);
   S.frame = 0;
   S.dist = S.composites.map(() => new Int16Array(S.sprite.width * S.sprite.height));
@@ -428,27 +441,37 @@ function floodFill(px, py, step) {
 
 // ---------- editor canvas: view transform + input ----------
 
+// Pick the largest zoom option where the sprite still fits the pane
+// (falls back to 100%) and reset the scroll position.
 function fitView() {
-  const rect = editor.getBoundingClientRect();
-  const z = Math.max(1, Math.floor(Math.min(
-    rect.width / S.sprite.width, rect.height / S.sprite.height) * 0.85));
-  S.zoom = z;
-  S.panX = (rect.width - S.sprite.width * z) / 2;
-  S.panY = (rect.height - S.sprite.height * z) / 2;
+  const wrap = $('editorwrap');
+  const opts = [...$('zoomSel').options].map(o => +o.value);
+  const fitting = opts.filter(p =>
+    S.sprite.width * p / 100 <= wrap.clientWidth &&
+    S.sprite.height * p / 100 <= wrap.clientHeight);
+  const pct = fitting.length ? Math.max(...fitting) : opts[0];
+  $('zoomSel').value = pct;
+  S.zoom = pct / 100;
+  wrap.scrollLeft = wrap.scrollTop = 0;
 }
+
+$('zoomSel').onchange = () => {
+  S.zoom = +$('zoomSel').value / 100;
+  requestRender();
+};
 
 function toSprite(e) {
   const rect = editor.getBoundingClientRect();
   return {
-    x: Math.floor((e.clientX - rect.left - S.panX) / S.zoom),
-    y: Math.floor((e.clientY - rect.top - S.panY) / S.zoom),
+    x: Math.floor((e.clientX - rect.left) / S.zoom),
+    y: Math.floor((e.clientY - rect.top) / S.zoom),
   };
 }
 
 editor.addEventListener('pointerdown', e => {
   if (!S.sprite) return;
+  if (e.button === 1) return;
   editor.setPointerCapture(e.pointerId);
-  if (e.button === 1 || S.spaceDown) { S.panning = true; return; }
   const erase = e.button === 2;
   S.painting = true;
   S.strokeVisited = new Set();
@@ -464,32 +487,17 @@ editor.addEventListener('pointermove', e => {
   const inb = p.x >= 0 && p.y >= 0 && p.x < S.sprite.width && p.y < S.sprite.height;
   $('stStep').textContent = inb
     ? `step ${S.dist[S.frame][p.y * S.sprite.width + p.x]}` : '';
-  if (S.panning) { S.panX += e.movementX; S.panY += e.movementY; requestRender(); return; }
   if (S.painting && S.tool !== 'fill' && S.tool !== 'pick') {
     applyTool(p.x, p.y, S.eraseStroke);
   }
 });
 editor.addEventListener('pointerup', () => {
-  S.painting = false; S.panning = false; S.strokeVisited = null;
+  S.painting = false; S.strokeVisited = null;
 });
 editor.addEventListener('contextmenu', e => e.preventDefault());
-editor.addEventListener('wheel', e => {
-  if (!S.sprite) return;
-  e.preventDefault();
-  const rect = editor.getBoundingClientRect();
-  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-  const oldZoom = S.zoom;
-  const maxZoom = Math.max(64, 2048 / Math.max(S.sprite.width, S.sprite.height));
-  S.zoom = Math.max(1, Math.min(maxZoom, S.zoom * (e.deltaY < 0 ? 1.25 : 0.8)));
-  S.zoom = S.zoom >= 4 ? Math.round(S.zoom) : S.zoom;
-  S.panX = mx - (mx - S.panX) * (S.zoom / oldZoom);
-  S.panY = my - (my - S.panY) * (S.zoom / oldZoom);
-  requestRender();
-}, { passive: false });
 
 window.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-  if (e.code === 'Space') { S.spaceDown = true; e.preventDefault(); }
   if (e.ctrlKey && e.key === 'z') { undo(); e.preventDefault(); }
   const tools = { p: 'paint', r: 'raise', l: 'lower', f: 'fill', i: 'pick', e: 'erase' };
   if (tools[e.key]) setTool(tools[e.key]);
@@ -500,7 +508,6 @@ window.addEventListener('keydown', e => {
     S.frame--; buildFrameButtons(); requestRender();
   }
 });
-window.addEventListener('keyup', e => { if (e.code === 'Space') S.spaceDown = false; });
 
 const toolButtons = { paint: 'toolPaint', raise: 'toolRaise', lower: 'toolLower',
   fill: 'toolFill', pick: 'toolPick', erase: 'toolErase' };
@@ -630,16 +637,17 @@ function render() {
 }
 
 function renderEditor() {
-  const rect = editor.getBoundingClientRect();
-  if (editor.width !== rect.width || editor.height !== rect.height) {
-    editor.width = rect.width; editor.height = rect.height;
-  }
   const { width, height } = S.sprite;
+  // canvas stays at native sprite resolution; CSS scales it by the zoom
+  // factor and #editorwrap scrolls whatever overflows
+  if (editor.width !== width || editor.height !== height) {
+    editor.width = width; editor.height = height;
+  }
+  editor.style.width = width * S.zoom + 'px';
+  editor.style.height = height * S.zoom + 'px';
   const range = +$('stepRange').value;
 
-  // build native-resolution frame: dimmed underlay + step overlay (+ onion)
-  const off = new OffscreenCanvas(width, height);
-  const octx = off.getContext('2d');
+  // native-resolution frame: dimmed underlay + step overlay (+ onion)
   const img = new ImageData(width, height);
   const comp = S.composites[S.frame];
   const dist = S.dist[S.frame];
@@ -668,18 +676,9 @@ function renderEditor() {
       img.data[o + 3] = Math.max(img.data[o + 3], 220);
     }
   }
-  octx.putImageData(img, 0, 0);
+  ectx.putImageData(img, 0, 0);
 
-  ectx.imageSmoothingEnabled = false;
-  ectx.clearRect(0, 0, editor.width, editor.height);
-  // checkerboard under the sprite area only
-  ectx.fillStyle = '#2a2a2a';
-  ectx.fillRect(S.panX, S.panY, width * S.zoom, height * S.zoom);
-  ectx.drawImage(off, S.panX, S.panY, width * S.zoom, height * S.zoom);
-  ectx.strokeStyle = '#555';
-  ectx.strokeRect(S.panX - 0.5, S.panY - 0.5, width * S.zoom + 1, height * S.zoom + 1);
-
-  $('stZoom').textContent = `${Math.round(S.zoom * 100) / 100}× · frame ${S.frame + 1}/${S.composites.length}`;
+  $('stZoom').textContent = `${Math.round(S.zoom * 100)}% · frame ${S.frame + 1}/${S.composites.length}`;
 }
 
 function renderPreviews() {
@@ -708,7 +707,6 @@ for (const id of ['stepRange', 'authorSpacing', 'heightBase', 'heightStep', 'smo
     requestRender();
   });
 }
-window.addEventListener('resize', requestRender);
 
 // ---------- export ----------
 
