@@ -22,7 +22,6 @@ class HexMapGame {
         this.hexRadiusValue = document.getElementById('hex-radius-value');
         this.resourcesPopupDurationSlider = document.getElementById('resources-popup-duration');
         this.resourcesPopupDurationValue = document.getElementById('resources-popup-duration-value');
-        this.versionDisplay = document.getElementById('version-display');
         this.securePopup = document.getElementById('secure-popup');
         this.secureBtn = document.getElementById('secure-btn');
         this.secureCancelBtn = document.getElementById('secure-cancel-btn');
@@ -39,9 +38,6 @@ class HexMapGame {
         this.winMessage = document.getElementById('win-message');
         this.resourcesFoundPopup = document.getElementById('resources-found-popup');
         this.resourcesFoundList = document.getElementById('resources-found-list');
-
-        // Version info
-        this.version = '1.1';
 
         // Game config (messages, etc.)
         this.gameConfig = {};
@@ -92,11 +88,6 @@ class HexMapGame {
         this.placeCenterTile();
         this.placeArk();
         this.render();
-
-        // Update version display
-        if (this.versionDisplay) {
-            this.versionDisplay.textContent = this.version;
-        }
 
         // Show welcome popup on game start
         this.showWelcomePopup();
@@ -246,8 +237,16 @@ class HexMapGame {
 
         // UI buttons
         this.restartBtn.addEventListener('click', () => this.restart());
-        this.debugBtn.addEventListener('click', () => this.openDebugPanel());
-        this.debugCloseBtn.addEventListener('click', () => this.closeDebugPanel());
+        // The shared debug widget owns opening/closing the panel; these
+        // listeners only sync the canvas tap-radius visualization with it.
+        this.debugBtn.addEventListener('click', () => {
+            this.showDebugOverlay = !this.debugOverlay.classList.contains('hidden');
+            this.render();
+        });
+        this.debugCloseBtn.addEventListener('click', () => {
+            this.showDebugOverlay = false;
+            this.render();
+        });
         this.forceRestartBtn.addEventListener('click', () => {
             this.closeDebugPanel();
             this.restart();
@@ -1085,12 +1084,6 @@ class HexMapGame {
 
     gameOver() {
         this.gameOverDiv.classList.remove('hidden');
-    }
-
-    openDebugPanel() {
-        this.debugOverlay.classList.remove('hidden');
-        this.showDebugOverlay = true;
-        this.render();
     }
 
     closeDebugPanel() {
