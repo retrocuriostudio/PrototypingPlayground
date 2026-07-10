@@ -514,38 +514,38 @@ class WordBlocksGame {
 
         // Only animate if there are cells to animate
         if (cellsToAnimate.length > 0) {
-            // Animate blocks individually with physics-like effect
-            // Start all animations at once but with different durations based on fall distance
-            const animationPromises = cellsToAnimate.map((cell, index) => {
-                return new Promise(resolve => {
-                    const cellElement = this.cellElements[cell.row][cell.col];
-
-                    // Stagger start time slightly for visual effect (50ms per block)
-                    setTimeout(() => {
-                        // Set initial position (where it's coming from)
-                        cellElement.style.top = `${cell.fromTop}px`;
-                        cellElement.style.transition = 'none';
-
-                        // Force reflow
-                        void cellElement.offsetHeight;
-
-                        // Animate to final position with easing that simulates physics
-                        // Use cubic-bezier for a bouncy, physics-like effect
-                        const duration = this.fallTime + (cell.distance * 50); // Longer falls take more time
-                        cellElement.style.transition = `top ${duration}ms cubic-bezier(0.34, 1.56, 0.64, 1)`;
-                        cellElement.style.top = `${cell.toTop}px`;
-
-                        // Resolve after animation completes
-                        setTimeout(() => {
-                            cellElement.style.transition = '';
-                            resolve();
-                        }, duration);
-                    }, index * 50); // 50ms stagger between each block
-                });
+            // Place every moving block at its origin before the browser paints,
+            // so nothing ever flashes at its destination slot.
+            cellsToAnimate.forEach(cell => {
+                const cellElement = this.cellElements[cell.row][cell.col];
+                cellElement.style.transition = 'none';
+                cellElement.style.top = `${cell.fromTop}px`;
             });
 
-            // Wait for all animations to complete
-            await Promise.all(animationPromises);
+            // Force a single reflow to commit the origin positions
+            void this.gridContainer.offsetHeight;
+
+            // Wait for the from-state to be rendered before starting transitions
+            await new Promise(resolve =>
+                requestAnimationFrame(() => requestAnimationFrame(resolve))
+            );
+
+            // Start all falls together; longer falls take more time, with a
+            // bouncy cubic-bezier easing that simulates physics
+            let maxDuration = 0;
+            cellsToAnimate.forEach(cell => {
+                const cellElement = this.cellElements[cell.row][cell.col];
+                const duration = this.fallTime + (cell.distance * 50);
+                maxDuration = Math.max(maxDuration, duration);
+                cellElement.style.transition = `top ${duration}ms cubic-bezier(0.34, 1.56, 0.64, 1)`;
+                cellElement.style.top = `${cell.toTop}px`;
+            });
+
+            // Wait for the longest animation to complete, then clean up
+            await new Promise(resolve => setTimeout(resolve, maxDuration));
+            cellsToAnimate.forEach(cell => {
+                this.cellElements[cell.row][cell.col].style.transition = '';
+            });
         }
     }
 
