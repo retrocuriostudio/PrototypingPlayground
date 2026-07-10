@@ -99,8 +99,9 @@ Settings:
 2. **Paint** steps in the left pane. Pick a step in the Step palette.
    - Tools: **paint** (P), **raise** ▲ / **lower** ▼ (+1/−1 per stroke, R/L),
      **fill** (F), **pick** (I), **erase** to base (E).
-   - Right-click = erase. Mouse wheel = zoom. Space-drag or middle-drag = pan.
-     Ctrl+Z = undo (50 levels). `[`/`]` — use the Brush field for brush size.
+   - Right-click = erase. Zoom with the Zoom dropdown (100–500%); when the
+     canvas doesn't fit, the editor pane shows scrollbars — pan by dragging
+     them. Ctrl+Z = undo (50 levels). Use the Brush field for brush size.
    - **Clamp to sprite** (default on) restricts painting to non-transparent
      sprite pixels.
 3. **Animations**: a frame bar appears for multi-frame files. Arrow keys switch
