@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Heightmap → Normal Tool</title>
+<!--
+  Heightmap → Normal companion tool for Aseprite pixel art.
+  Load an .aseprite (read-only) as a trace-over underlay, paint per-pixel
+  distance steps (closer/farther from a base plane), and get a live
+  heightmap + normal map preview. Exports PNG sequences per frame.
+  Never writes to the .aseprite file.
+-->
+<style>
+  :root {
+    --bg: #1b1d21; --panel: #24272c; --panel2: #2b2f35; --border: #3a3f47;
+    --text: #d6d8dc; --dim: #8a8f98; --accent: #4d9fd6; --danger: #d66a4d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 13px/1.4 system-ui, sans-serif; height: 100vh;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  button, select, input { font: inherit; color: inherit; }
+  button {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 3px 10px; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button.active { background: var(--accent); color: #10233a; border-color: var(--accent); }
+  input[type=number], select {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 2px 6px; width: 64px;
+  }
+  select { width: auto; }
+  label { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
+
+  #topbar {
+    display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+    /* right padding keeps the buttons clear of the fixed debug-widget button */
+    padding-right: 80px;
+    background: var(--panel); border-bottom: 1px solid var(--border); flex: 0 0 auto;
+  }
+  #spriteName { color: var(--dim); margin-right: auto; }
+
+  #framebar {
+    display: flex; align-items: center; gap: 4px; padding: 4px 10px;
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    flex: 0 0 auto; overflow-x: auto;
+  }
+  #framebar .fbtn { min-width: 30px; padding: 2px 6px; }
+
+  #main { display: flex; flex: 1 1 auto; min-height: 0; }
+
+  #toolbar {
+    width: 172px; flex: 0 0 auto; background: var(--panel);
+    border-right: 1px solid var(--border); padding: 8px;
+    display: flex; flex-direction: column; gap: 8px; overflow-y: auto;
+  }
+  .toolrow { display: flex; gap: 4px; flex-wrap: wrap; }
+  .toolrow button { flex: 1 1 45%; }
+  #steps { display: flex; flex-direction: column-reverse; gap: 2px; }
+  #steps button {
+    display: flex; justify-content: space-between; padding: 2px 8px;
+    border-width: 2px; font-family: monospace;
+  }
+  .section { border-top: 1px solid var(--border); padding-top: 8px;
+    display: flex; flex-direction: column; gap: 5px; }
+  .section h4 { margin: 0 0 2px; font-size: 12px; color: var(--dim);
+    text-transform: uppercase; letter-spacing: .5px; }
+
+  #editorwrap { flex: 1 1 auto; position: relative; min-width: 0; }
+  #editor { position: absolute; inset: 0; width: 100%; height: 100%;
+    touch-action: none; cursor: crosshair; }
+
+  #previews {
+    width: 300px; flex: 0 0 auto; background: var(--panel);
+    border-left: 1px solid var(--border); padding: 8px;
+    display: flex; flex-direction: column; gap: 8px; overflow-y: auto;
+  }
+  .preview { display: flex; flex-direction: column; gap: 4px; }
+  .preview h4 { margin: 0; font-size: 12px; color: var(--dim);
+    text-transform: uppercase; letter-spacing: .5px; }
+  .preview canvas {
+    width: 100%; image-rendering: pixelated;
+    background:
+      repeating-conic-gradient(#333 0% 25%, #3c3c3c 0% 50%) 0 0 / 16px 16px;
+    border: 1px solid var(--border); border-radius: 3px;
+  }
+
+  #statusbar {
+    display: flex; gap: 16px; padding: 3px 10px; background: var(--panel);
+    border-top: 1px solid var(--border); color: var(--dim);
+    font-family: monospace; flex: 0 0 auto;
+  }
+  #drop {
+    position: absolute; inset: 0; display: flex; align-items: center;
+    justify-content: center; color: var(--dim); font-size: 15px;
+    pointer-events: none; text-align: center;
+  }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<script src="../../debug-widget.js" data-name="Heightmap → Normal Tool" data-version="1"></script>
+
+<div id="topbar">
+  <button id="btnLoad">Load .aseprite / PNG</button>
+  <button id="btnResume">Resume (distance PNGs)</button>
+  <span id="spriteName">no file loaded</span>
+  <button id="btnExport">Export PNG sequences</button>
+  <button id="btnSettingsJSON">Save settings JSON</button>
+</div>
+
+<div id="framebar" class="hidden">
+  <span style="color:var(--dim)">Frames:</span>
+  <span id="frames"></span>
+  <button id="btnCopyPrev" title="Copy previous frame's distance into this frame">⧉ copy prev</button>
+  <label style="gap:3px"><input type="checkbox" id="onion"> onion</label>
+</div>
+
+<div id="main">
+  <div id="toolbar">
+    <div class="toolrow">
+      <button id="toolPaint" class="active" title="Paint selected step (P)">✏ paint</button>
+      <button id="toolRaise" title="Raise by 1 per stroke (R). Alt = lower">▲ raise</button>
+      <button id="toolLower" title="Lower by 1 per stroke (L)">▼ lower</button>
+      <button id="toolFill" title="Flood fill step (F)">▨ fill</button>
+      <button id="toolPick" title="Pick step under cursor (I)">◉ pick</button>
+      <button id="toolErase" title="Erase to base 0 (E)">□ erase</button>
+    </div>
+    <label>Brush <input type="number" id="brushSize" value="1" min="1" max="32"></label>
+    <label title="Only paint where the sprite has pixels">
+      Clamp to sprite <input type="checkbox" id="clampSil" checked></label>
+    <div class="section">
+      <h4>Step</h4>
+      <div id="steps"></div>
+    </div>
+    <div class="section">
+      <h4>Author</h4>
+      <label>Range ± <input type="number" id="stepRange" value="5" min="1" max="10"></label>
+      <label title="Gray units per step in exported distance PNGs (visibility encoding)">
+        Spacing <input type="number" id="authorSpacing" value="20" min="1" max="25"></label>
+    </div>
+    <div class="section">
+      <h4>Heightmap</h4>
+      <label>Base <input type="number" id="heightBase" value="128" min="0" max="255"></label>
+      <label title="Gray units per step in the real heightmap">
+        Step <input type="number" id="heightStep" value="8" min="1" max="64"></label>
+      <label title="Box blur radius in px; softens hard step edges">
+        Smooth <input type="number" id="smooth" value="0" min="0" max="8"></label>
+      <label>Invert <input type="checkbox" id="invert"></label>
+    </div>
+    <div class="section">
+      <h4>Normal map</h4>
+      <label>Strength <input type="number" id="strength" value="2" min="0.1" max="20" step="0.1"></label>
+      <label>Y axis <select id="yAxis">
+        <option value="directx" selected>DirectX (−Y)</option>
+        <option value="opengl">OpenGL (+Y)</option>
+      </select></label>
+      <label>Edges <select id="edges">
+        <option value="clamp" selected>Clamp (flat)</option>
+        <option value="bevel">Bevel (rounded)</option>
+      </select></label>
+      <label>Transparent <select id="transparent">
+        <option value="keep" selected>Keep</option>
+        <option value="fill">Fill flat</option>
+      </select></label>
+    </div>
+  </div>
+
+  <div id="editorwrap">
+    <canvas id="editor"></canvas>
+    <div id="drop">Load an .aseprite or PNG to start<br>
+      <small>paint distance steps · wheel = zoom · space/middle-drag = pan ·
+      right-click = erase · Ctrl+Z = undo</small></div>
+  </div>
+
+  <div id="previews">
+    <div class="preview"><h4>Heightmap</h4><canvas id="cvHeight"></canvas></div>
+    <div class="preview"><h4>Normal</h4><canvas id="cvNormal"></canvas></div>
+  </div>
+</div>
+
+<div id="statusbar">
+  <span id="stPos">—</span><span id="stStep"></span><span id="stZoom"></span>
+</div>
+
+<input type="file" id="fileInput" accept=".aseprite,.ase,.png" class="hidden">
+<input type="file" id="resumeInput" accept=".png,.json" multiple class="hidden">
+
+<script src="aseprite.js"></script>
+<script>
+'use strict';
+
+// ---------- state ----------
+
+const S = {
+  sprite: null,          // parsed aseprite (or pseudo-sprite from PNG)
+  baseName: 'sprite',
+  composites: [],        // per-frame underlay RGBA {width,height,data}
+  dist: [],              // per-frame Int16Array of steps
+  frame: 0,
+  tool: 'paint',
+  step: 1,               // selected step for paint/fill
+  zoom: 8, panX: 0, panY: 0,
+  painting: false, panning: false,
+  strokeVisited: null,   // Set of pixel indices changed this stroke (raise/lower)
+  undo: [],              // [{frame, buffer}]
+  onion: false,
+  spaceDown: false,
+};
+
+const $ = id => document.getElementById(id);
+const editor = $('editor');
+const ectx = editor.getContext('2d');
+
+const settings = () => ({
+  stepRange: +$('stepRange').value,
+  authorSpacing: +$('authorSpacing').value,
+  heightBase: +$('heightBase').value,
+  heightStep: +$('heightStep').value,
+  smooth: +$('smooth').value,
+  invert: $('invert').checked,
+  strength: +$('strength').value,
+  yAxis: $('yAxis').value,
+  edges: $('edges').value,
+  transparent: $('transparent').value,
+});
+
+// ---------- step palette (diverging colors, distinct while editing) ----------
+
+function stepColor(step, range) {
+  if (step === 0) return null;
+  const t = Math.min(1, Math.abs(step) / range);
+  return step > 0
+    ? [255, Math.round(190 - 130 * t), Math.round(80 - 50 * t)]   // closer: orange→red
+    : [Math.round(90 - 40 * t), Math.round(170 - 60 * t), 255];   // farther: light→deep blue
+}
+
+function buildStepButtons() {
+  const range = +$('stepRange').value;
+  if (S.step > range || S.step < -range) S.step = 0;
+  const wrap = $('steps');
+  wrap.innerHTML = '';
+  for (let s = -range; s <= range; s++) {
+    const b = document.createElement('button');
+    const c = stepColor(s, range);
+    b.textContent = (s > 0 ? '+' : '') + s + (s === 0 ? ' base' : '');
+    b.style.borderColor = c ? `rgb(${c})` : 'var(--border)';
+    if (s === S.step) b.classList.add('active');
+    b.onclick = () => { S.step = s; buildStepButtons(); };
+    wrap.appendChild(b);
+  }
+}
+
+// ---------- file loading ----------
+
+$('btnLoad').onclick = () => $('fileInput').click();
+$('fileInput').onchange = async e => {
+  const file = e.target.files[0];
+  if (file) await loadFile(file);
+  e.target.value = '';
+};
+
+async function loadFile(file) {
+  const buf = await file.arrayBuffer();
+  const magic = new DataView(buf).getUint32(0, false);
+  try {
+    if (magic === 0x89504E47) await loadPNG(file, buf);
+    else await loadAseprite(file, buf);
+  } catch (err) {
+    alert('Failed to load: ' + err.message);
+    return;
+  }
+  S.baseName = file.name.replace(/\.(aseprite|ase|png)$/i, '');
+  $('spriteName').textContent =
+    `${file.name} — ${S.sprite.width}×${S.sprite.height}, ${S.composites.length} frame(s)`;
+  $('drop').classList.add('hidden');
+  $('framebar').classList.toggle('hidden', S.composites.length <= 1);
+  S.frame = 0;
+  S.dist = S.composites.map(() => new Int16Array(S.sprite.width * S.sprite.height));
+  S.undo = [];
+  buildFrameButtons();
+  fitView();
+  requestRender();
+}
+
+async function loadAseprite(file, buf) {
+  const spr = await AsepriteParser.parse(buf);
+  S.sprite = spr;
+  S.composites = [];
+  for (let f = 0; f < spr.numFrames; f++) S.composites.push(spr.compositeFrame(f));
+}
+
+async function loadPNG(file, buf) {
+  // createImageBitmap instead of Image.decode(): decode() can stall
+  // indefinitely in backgrounded tabs.
+  const bmp = await createImageBitmap(new Blob([buf]));
+  const cv = document.createElement('canvas');
+  cv.width = bmp.width; cv.height = bmp.height;
+  const ctx = cv.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(bmp, 0, 0);
+  const data = ctx.getImageData(0, 0, bmp.width, bmp.height);
+  S.sprite = { width: bmp.width, height: bmp.height, numFrames: 1,
+    durations: [100], tags: [] };
+  S.composites = [{ width: bmp.width, height: bmp.height, data: data.data }];
+}
+
+// ---------- frame bar ----------
+
+function buildFrameButtons() {
+  const wrap = $('frames');
+  wrap.innerHTML = '';
+  S.composites.forEach((_, f) => {
+    const b = document.createElement('button');
+    b.className = 'fbtn' + (f === S.frame ? ' active' : '');
+    b.textContent = f + 1;
+    const tag = (S.sprite.tags || []).find(t => f >= t.from && f <= t.to);
+    b.title = `${S.sprite.durations[f]}ms` + (tag ? ` · ${tag.name}` : '');
+    b.onclick = () => { S.frame = f; buildFrameButtons(); requestRender(); };
+    wrap.appendChild(b);
+  });
+}
+
+$('btnCopyPrev').onclick = () => {
+  if (S.frame === 0) return;
+  pushUndo();
+  S.dist[S.frame].set(S.dist[S.frame - 1]);
+  requestRender();
+};
+$('onion').onchange = e => { S.onion = e.target.checked; requestRender(); };
+
+// ---------- painting ----------
+
+function pushUndo() {
+  S.undo.push({ frame: S.frame, buffer: S.dist[S.frame].slice() });
+  if (S.undo.length > 50) S.undo.shift();
+}
+
+function undo() {
+  const u = S.undo.pop();
+  if (!u) return;
+  S.dist[u.frame].set(u.buffer);
+  if (u.frame !== S.frame) { S.frame = u.frame; buildFrameButtons(); }
+  requestRender();
+}
+
+function inSilhouette(x, y) {
+  const c = S.composites[S.frame];
+  return c.data[(y * c.width + x) * 4 + 3] > 0;
+}
+
+function eachBrushPixel(cx, cy, fn) {
+  const size = +$('brushSize').value;
+  const r = size / 2;
+  const x0 = Math.floor(cx - r + 0.5), y0 = Math.floor(cy - r + 0.5);
+  for (let y = y0; y < y0 + size; y++) {
+    for (let x = x0; x < x0 + size; x++) {
+      if (x < 0 || y < 0 || x >= S.sprite.width || y >= S.sprite.height) continue;
+      if ($('clampSil').checked && !inSilhouette(x, y)) continue;
+      fn(x, y);
+    }
+  }
+}
+
+function applyTool(px, py, erase) {
+  const dist = S.dist[S.frame];
+  const range = +$('stepRange').value;
+  const clampStep = v => Math.max(-range, Math.min(range, v));
+  const tool = erase ? 'erase' : S.tool;
+
+  if (tool === 'pick') {
+    if (px >= 0 && py >= 0 && px < S.sprite.width && py < S.sprite.height) {
+      S.step = dist[py * S.sprite.width + px];
+      buildStepButtons();
+    }
+    return;
+  }
+  if (tool === 'fill') {
+    floodFill(px, py, S.step);
+    return;
+  }
+  eachBrushPixel(px, py, (x, y) => {
+    const i = y * S.sprite.width + x;
+    if (tool === 'paint') dist[i] = clampStep(S.step);
+    else if (tool === 'erase') dist[i] = 0;
+    else if (tool === 'raise' || tool === 'lower') {
+      if (S.strokeVisited.has(i)) return;
+      S.strokeVisited.add(i);
+      dist[i] = clampStep(dist[i] + (tool === 'raise' ? 1 : -1));
+    }
+  });
+  requestRender();
+}
+
+function floodFill(px, py, step) {
+  const { width, height } = S.sprite;
+  if (px < 0 || py < 0 || px >= width || py >= height) return;
+  const dist = S.dist[S.frame];
+  const clamp = $('clampSil').checked;
+  if (clamp && !inSilhouette(px, py)) return;
+  const target = dist[py * width + px];
+  if (target === step) return;
+  const stack = [py * width + px];
+  while (stack.length) {
+    const i = stack.pop();
+    if (dist[i] !== target) continue;
+    const x = i % width, y = (i / width) | 0;
+    if (clamp && !inSilhouette(x, y)) continue;
+    dist[i] = step;
+    if (x > 0) stack.push(i - 1);
+    if (x < width - 1) stack.push(i + 1);
+    if (y > 0) stack.push(i - width);
+    if (y < height - 1) stack.push(i + width);
+  }
+  requestRender();
+}
+
+// ---------- editor canvas: view transform + input ----------
+
+function fitView() {
+  const rect = editor.getBoundingClientRect();
+  const z = Math.max(1, Math.floor(Math.min(
+    rect.width / S.sprite.width, rect.height / S.sprite.height) * 0.85));
+  S.zoom = z;
+  S.panX = (rect.width - S.sprite.width * z) / 2;
+  S.panY = (rect.height - S.sprite.height * z) / 2;
+}
+
+function toSprite(e) {
+  const rect = editor.getBoundingClientRect();
+  return {
+    x: Math.floor((e.clientX - rect.left - S.panX) / S.zoom),
+    y: Math.floor((e.clientY - rect.top - S.panY) / S.zoom),
+  };
+}
+
+editor.addEventListener('pointerdown', e => {
+  if (!S.sprite) return;
+  editor.setPointerCapture(e.pointerId);
+  if (e.button === 1 || S.spaceDown) { S.panning = true; return; }
+  const erase = e.button === 2;
+  S.painting = true;
+  S.strokeVisited = new Set();
+  if (S.tool !== 'pick') pushUndo();
+  const p = toSprite(e);
+  applyTool(p.x, p.y, erase);
+  S.eraseStroke = erase;
+});
+editor.addEventListener('pointermove', e => {
+  if (!S.sprite) return;
+  const p = toSprite(e);
+  $('stPos').textContent = `${p.x},${p.y}`;
+  const inb = p.x >= 0 && p.y >= 0 && p.x < S.sprite.width && p.y < S.sprite.height;
+  $('stStep').textContent = inb
+    ? `step ${S.dist[S.frame][p.y * S.sprite.width + p.x]}` : '';
+  if (S.panning) { S.panX += e.movementX; S.panY += e.movementY; requestRender(); return; }
+  if (S.painting && S.tool !== 'fill' && S.tool !== 'pick') {
+    applyTool(p.x, p.y, S.eraseStroke);
+  }
+});
+editor.addEventListener('pointerup', () => {
+  S.painting = false; S.panning = false; S.strokeVisited = null;
+});
+editor.addEventListener('contextmenu', e => e.preventDefault());
+editor.addEventListener('wheel', e => {
+  if (!S.sprite) return;
+  e.preventDefault();
+  const rect = editor.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const oldZoom = S.zoom;
+  const maxZoom = Math.max(64, 2048 / Math.max(S.sprite.width, S.sprite.height));
+  S.zoom = Math.max(1, Math.min(maxZoom, S.zoom * (e.deltaY < 0 ? 1.25 : 0.8)));
+  S.zoom = S.zoom >= 4 ? Math.round(S.zoom) : S.zoom;
+  S.panX = mx - (mx - S.panX) * (S.zoom / oldZoom);
+  S.panY = my - (my - S.panY) * (S.zoom / oldZoom);
+  requestRender();
+}, { passive: false });
+
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.code === 'Space') { S.spaceDown = true; e.preventDefault(); }
+  if (e.ctrlKey && e.key === 'z') { undo(); e.preventDefault(); }
+  const tools = { p: 'paint', r: 'raise', l: 'lower', f: 'fill', i: 'pick', e: 'erase' };
+  if (tools[e.key]) setTool(tools[e.key]);
+  if (e.key === 'ArrowRight' && S.frame < S.composites.length - 1) {
+    S.frame++; buildFrameButtons(); requestRender();
+  }
+  if (e.key === 'ArrowLeft' && S.frame > 0) {
+    S.frame--; buildFrameButtons(); requestRender();
+  }
+});
+window.addEventListener('keyup', e => { if (e.code === 'Space') S.spaceDown = false; });
+
+const toolButtons = { paint: 'toolPaint', raise: 'toolRaise', lower: 'toolLower',
+  fill: 'toolFill', pick: 'toolPick', erase: 'toolErase' };
+function setTool(t) {
+  S.tool = t;
+  for (const [name, id] of Object.entries(toolButtons)) {
+    $(id).classList.toggle('active', name === t);
+  }
+}
+for (const [name, id] of Object.entries(toolButtons)) {
+  $(id).onclick = () => setTool(name);
+}
+
+// ---------- pipeline: distance → heightmap → normal ----------
+
+// Height in gray units per pixel; NaN marks outside-silhouette.
+function computeHeight(frame) {
+  const { width, height } = S.sprite;
+  const st = settings();
+  const comp = S.composites[frame];
+  const dist = S.dist[frame];
+  const H = new Float32Array(width * height);
+  for (let i = 0; i < H.length; i++) {
+    if (comp.data[i * 4 + 3] === 0) { H[i] = NaN; continue; }
+    const step = st.invert ? -dist[i] : dist[i];
+    H[i] = Math.max(0, Math.min(255, st.heightBase + step * st.heightStep));
+  }
+  if (st.smooth > 0) return blur(H, width, height, st.smooth);
+  return H;
+}
+
+// Box blur that ignores NaN (outside silhouette stays NaN, edges don't bleed).
+function blur(H, width, height, radius) {
+  const out = new Float32Array(H.length);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      if (Number.isNaN(H[i])) { out[i] = NaN; continue; }
+      let sum = 0, n = 0;
+      for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+          const nx = x + dx, ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+          const v = H[ny * width + nx];
+          if (Number.isNaN(v)) continue;
+          sum += v; n++;
+        }
+      }
+      out[i] = sum / n;
+    }
+  }
+  return out;
+}
+
+// Sobel over the heightmap → RGBA normal map.
+function computeNormal(H, frame) {
+  const { width, height } = S.sprite;
+  const st = settings();
+  const out = new Uint8ClampedArray(width * height * 4);
+  const flat = st.transparent === 'fill';
+
+  // neighbor sample honoring edge mode: clamp uses center height at
+  // silhouette/canvas edges (flat), bevel treats outside as height 0 (rim).
+  function sample(x, y, center) {
+    if (x < 0 || y < 0 || x >= width || y >= height) {
+      return st.edges === 'bevel' ? 0 : center;
+    }
+    const v = H[y * width + x];
+    if (Number.isNaN(v)) return st.edges === 'bevel' ? 0 : center;
+    return v;
+  }
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      const o = i * 4;
+      const center = H[i];
+      if (Number.isNaN(center)) {
+        if (flat) {
+          out[o] = 128; out[o + 1] = 128; out[o + 2] = 255; out[o + 3] = 255;
+        }
+        continue;
+      }
+      const tl = sample(x - 1, y - 1, center), t = sample(x, y - 1, center),
+            tr = sample(x + 1, y - 1, center), l = sample(x - 1, y, center),
+            r = sample(x + 1, y, center), bl = sample(x - 1, y + 1, center),
+            b = sample(x, y + 1, center), br = sample(x + 1, y + 1, center);
+      // Sobel gradients, normalized to height-units per pixel, then to 0..1 slope
+      const dx = ((tr + 2 * r + br) - (tl + 2 * l + bl)) / (8 * 255);
+      const dy = ((bl + 2 * b + br) - (tl + 2 * t + tr)) / (8 * 255);
+      let nx = -dx * st.strength, ny = -dy * st.strength, nz = 1 / 8;
+      const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+      nx /= len; ny /= len; nz /= len;
+      if (st.yAxis === 'opengl') ny = -ny; // image y is down; OpenGL green is up
+      out[o]     = (nx * 0.5 + 0.5) * 255;
+      out[o + 1] = (ny * 0.5 + 0.5) * 255;
+      out[o + 2] = (nz * 0.5 + 0.5) * 255;
+      out[o + 3] = 255;
+    }
+  }
+  return out;
+}
+
+function heightToRGBA(H) {
+  const out = new Uint8ClampedArray(H.length * 4);
+  for (let i = 0; i < H.length; i++) {
+    if (Number.isNaN(H[i])) continue;
+    out[i * 4] = out[i * 4 + 1] = out[i * 4 + 2] = H[i];
+    out[i * 4 + 3] = 255;
+  }
+  return out;
+}
+
+// ---------- rendering ----------
+
+let renderQueued = false;
+function requestRender() {
+  if (renderQueued) return;
+  renderQueued = true;
+  requestAnimationFrame(() => { renderQueued = false; render(); });
+}
+
+function render() {
+  if (!S.sprite) return;
+  renderEditor();
+  renderPreviews();
+}
+
+function renderEditor() {
+  const rect = editor.getBoundingClientRect();
+  if (editor.width !== rect.width || editor.height !== rect.height) {
+    editor.width = rect.width; editor.height = rect.height;
+  }
+  const { width, height } = S.sprite;
+  const range = +$('stepRange').value;
+
+  // build native-resolution frame: dimmed underlay + step overlay (+ onion)
+  const off = new OffscreenCanvas(width, height);
+  const octx = off.getContext('2d');
+  const img = new ImageData(width, height);
+  const comp = S.composites[S.frame];
+  const dist = S.dist[S.frame];
+  const prev = S.onion && S.frame > 0 ? S.dist[S.frame - 1] : null;
+  for (let i = 0; i < width * height; i++) {
+    const o = i * 4;
+    // dimmed sprite underlay
+    img.data[o] = comp.data[o] * 0.45;
+    img.data[o + 1] = comp.data[o + 1] * 0.45;
+    img.data[o + 2] = comp.data[o + 2] * 0.45;
+    img.data[o + 3] = comp.data[o + 3];
+    // onion: previous frame's steps, faint
+    if (prev && prev[i] !== 0) {
+      const c = stepColor(prev[i], range);
+      img.data[o] = img.data[o] * 0.75 + c[0] * 0.25;
+      img.data[o + 1] = img.data[o + 1] * 0.75 + c[1] * 0.25;
+      img.data[o + 2] = img.data[o + 2] * 0.75 + c[2] * 0.25;
+      img.data[o + 3] = Math.max(img.data[o + 3], 90);
+    }
+    // current frame's steps, strong
+    if (dist[i] !== 0) {
+      const c = stepColor(dist[i], range);
+      img.data[o] = img.data[o] * 0.35 + c[0] * 0.65;
+      img.data[o + 1] = img.data[o + 1] * 0.35 + c[1] * 0.65;
+      img.data[o + 2] = img.data[o + 2] * 0.35 + c[2] * 0.65;
+      img.data[o + 3] = Math.max(img.data[o + 3], 220);
+    }
+  }
+  octx.putImageData(img, 0, 0);
+
+  ectx.imageSmoothingEnabled = false;
+  ectx.clearRect(0, 0, editor.width, editor.height);
+  // checkerboard under the sprite area only
+  ectx.fillStyle = '#2a2a2a';
+  ectx.fillRect(S.panX, S.panY, width * S.zoom, height * S.zoom);
+  ectx.drawImage(off, S.panX, S.panY, width * S.zoom, height * S.zoom);
+  ectx.strokeStyle = '#555';
+  ectx.strokeRect(S.panX - 0.5, S.panY - 0.5, width * S.zoom + 1, height * S.zoom + 1);
+
+  $('stZoom').textContent = `${Math.round(S.zoom * 100) / 100}× · frame ${S.frame + 1}/${S.composites.length}`;
+}
+
+function renderPreviews() {
+  const { width, height } = S.sprite;
+  const H = computeHeight(S.frame);
+  const normal = computeNormal(H, S.frame);
+  for (const [id, data] of [['cvHeight', heightToRGBA(H)], ['cvNormal', normal]]) {
+    const cv = $(id);
+    cv.width = width; cv.height = height;
+    cv.getContext('2d').putImageData(new ImageData(data, width, height), 0, 0);
+  }
+}
+
+// re-render when any setting changes
+for (const id of ['stepRange', 'authorSpacing', 'heightBase', 'heightStep', 'smooth',
+  'invert', 'strength', 'yAxis', 'edges', 'transparent', 'brushSize', 'clampSil']) {
+  $(id).addEventListener('input', () => {
+    if (id === 'stepRange') buildStepButtons();
+    if (id === 'stepRange' || id === 'authorSpacing') {
+      // keep 128 + range·spacing inside 0..255 so distance PNGs round-trip
+      const range = +$('stepRange').value;
+      const maxSpacing = Math.floor(127 / range);
+      if (+$('authorSpacing').value > maxSpacing) $('authorSpacing').value = maxSpacing;
+      $('authorSpacing').max = maxSpacing;
+    }
+    requestRender();
+  });
+}
+window.addEventListener('resize', requestRender);
+
+// ---------- export ----------
+
+function pad4(n) { return String(n).padStart(4, '0'); }
+
+async function canvasBlob(data, width, height) {
+  const cv = new OffscreenCanvas(width, height);
+  cv.getContext('2d').putImageData(new ImageData(data, width, height), 0, 0);
+  return cv.convertToBlob({ type: 'image/png' });
+}
+
+function distanceToRGBA(frame) {
+  // grayscale 128 + step·authorSpacing, alpha only inside silhouette
+  const { width, height } = S.sprite;
+  const st = settings();
+  const comp = S.composites[frame];
+  const dist = S.dist[frame];
+  const out = new Uint8ClampedArray(width * height * 4);
+  for (let i = 0; i < width * height; i++) {
+    if (comp.data[i * 4 + 3] === 0 && dist[i] === 0) continue;
+    const v = Math.max(0, Math.min(255, 128 + dist[i] * st.authorSpacing));
+    out[i * 4] = out[i * 4 + 1] = out[i * 4 + 2] = v;
+    out[i * 4 + 3] = 255;
+  }
+  return out;
+}
+
+$('btnExport').onclick = async () => {
+  if (!S.sprite) return alert('Load a file first.');
+  const { width, height } = S.sprite;
+  const files = [];
+  for (let f = 0; f < S.composites.length; f++) {
+    const H = computeHeight(f);
+    files.push([`${S.baseName}_distance_${pad4(f + 1)}.png`,
+      await canvasBlob(distanceToRGBA(f), width, height)]);
+    files.push([`${S.baseName}_height_${pad4(f + 1)}.png`,
+      await canvasBlob(heightToRGBA(H), width, height)]);
+    files.push([`${S.baseName}_normal_${pad4(f + 1)}.png`,
+      await canvasBlob(computeNormal(H, f), width, height)]);
+  }
+  files.push([`${S.baseName}_settings.json`, new Blob(
+    [JSON.stringify(settings(), null, 2)], { type: 'application/json' })]);
+
+  if (window.showDirectoryPicker) {
+    try {
+      const dir = await showDirectoryPicker({ mode: 'readwrite' });
+      for (const [name, blob] of files) {
+        const fh = await dir.getFileHandle(name, { create: true });
+        const w = await fh.createWritable();
+        await w.write(blob); await w.close();
+      }
+      alert(`Exported ${files.length} files.`);
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+      // fall through to downloads
+    }
+  }
+  for (const [name, blob] of files) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+};
+
+$('btnSettingsJSON').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(
+    [JSON.stringify(settings(), null, 2)], { type: 'application/json' }));
+  a.download = `${S.baseName}_settings.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+// ---------- resume from distance PNGs (+ optional settings JSON) ----------
+
+$('btnResume').onclick = () => {
+  if (!S.sprite) return alert('Load the sprite first, then resume its distance PNGs.');
+  $('resumeInput').click();
+};
+$('resumeInput').onchange = async e => {
+  const all = [...e.target.files];
+  e.target.value = '';
+  const json = all.find(f => f.name.endsWith('.json'));
+  if (json) {
+    const st = JSON.parse(await json.text());
+    for (const [k, v] of Object.entries(st)) {
+      const el = $(k);
+      if (!el) continue;
+      if (el.type === 'checkbox') el.checked = v; else el.value = v;
+    }
+    buildStepButtons();
+  }
+  const pngs = all.filter(f => f.name.endsWith('.png'))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const st = settings();
+  for (let n = 0; n < pngs.length && n < S.dist.length; n++) {
+    const bmp = await createImageBitmap(pngs[n]);
+    const cv = document.createElement('canvas');
+    cv.width = bmp.width; cv.height = bmp.height;
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(bmp, 0, 0);
+    const d = ctx.getImageData(0, 0, bmp.width, bmp.height).data;
+    const dist = S.dist[n];
+    for (let i = 0; i < dist.length && i * 4 < d.length; i++) {
+      dist[i] = d[i * 4 + 3] === 0 ? 0
+        : Math.round((d[i * 4] - 128) / st.authorSpacing);
+    }
+  }
+  requestRender();
+};
+
+// ---------- init ----------
+
+buildStepButtons();
+</script>
+</body>
+</html>

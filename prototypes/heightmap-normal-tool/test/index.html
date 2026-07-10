@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>aseprite.js parser tests</title>
+<style>
+  body { font-family: monospace; background: #1e1e1e; color: #ddd; padding: 16px; }
+  .pass { color: #6ec96e; }
+  .fail { color: #e46a6a; }
+  canvas { image-rendering: pixelated; border: 1px solid #555; margin: 2px; }
+</style>
+</head>
+<body>
+<h3>aseprite.js parser tests</h3>
+<div id="results">running…</div>
+<div id="visual"></div>
+<script src="../aseprite.js"></script>
+<script>
+'use strict';
+
+// Compares parser composites of each test .aseprite against ground-truth PNGs
+// exported by Aseprite itself (test/truth/*.png), plus metadata assertions.
+
+const TOLERANCE = 2; // canvas PNG decode may premultiply-round semi-transparent pixels
+
+async function loadTruthPNG(url) {
+  // createImageBitmap instead of Image.decode(): decode() can stall
+  // indefinitely in backgrounded tabs.
+  const bmp = await createImageBitmap(await (await fetch(url)).blob());
+  const cv = document.createElement('canvas');
+  cv.width = bmp.width; cv.height = bmp.height;
+  const ctx = cv.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(bmp, 0, 0);
+  return ctx.getImageData(0, 0, bmp.width, bmp.height);
+}
+
+function diffImages(a, b) {
+  if (a.width !== b.width || a.height !== b.height) {
+    return [`size mismatch: ${a.width}x${a.height} vs ${b.width}x${b.height}`];
+  }
+  const errors = [];
+  for (let i = 0; i < a.data.length; i += 4) {
+    // Ignore RGB on fully transparent pixels (undefined color under alpha 0).
+    if (a.data[i + 3] === 0 && b.data[i + 3] === 0) continue;
+    for (let c = 0; c < 4; c++) {
+      if (Math.abs(a.data[i + c] - b.data[i + c]) > TOLERANCE) {
+        const px = (i / 4) % a.width, py = Math.floor((i / 4) / a.width);
+        errors.push(`(${px},${py}) ch${c}: got ${a.data[i + c]}, want ${b.data[i + c]}`);
+        break;
+      }
+    }
+    if (errors.length >= 5) { errors.push('…'); break; }
+  }
+  return errors;
+}
+
+function showComposite(label, composite) {
+  const wrap = document.getElementById('visual');
+  const cv = document.createElement('canvas');
+  cv.width = composite.width; cv.height = composite.height;
+  cv.style.width = (composite.width * 12) + 'px';
+  cv.style.height = (composite.height * 12) + 'px';
+  cv.title = label;
+  cv.getContext('2d').putImageData(
+    new ImageData(composite.data, composite.width, composite.height), 0, 0);
+  wrap.appendChild(cv);
+}
+
+async function run() {
+  if (location.protocol === 'file:') {
+    document.getElementById('results').innerHTML =
+      '<div class="fail">This test page needs a local server (fetch is blocked on file://).<br>' +
+      'Run: <b>py -m http.server 8613 --directory heightmap-normal-tool</b> from the scripts folder,<br>' +
+      'then open <b>http://localhost:8613/test/</b>.<br><br>' +
+      'If you meant to use the tool itself, open <b>heightmap-normal-tool/index.html</b> instead — ' +
+      'the app works directly from disk.</div>';
+    window.TEST_RESULTS = { done: true, skipped: 'file:// protocol' };
+    return;
+  }
+  const results = [];
+  const check = (name, cond, detail) =>
+    results.push({ name, pass: !!cond, detail: cond ? '' : String(detail || '') });
+
+  const files = [
+    { name: 'rgba_single', frames: 1 },
+    { name: 'rgba_multilayer', frames: 1 },
+    { name: 'indexed', frames: 1 },
+    { name: 'animated', frames: 3 },
+  ];
+
+  for (const file of files) {
+    try {
+      const buf = await (await fetch(`assets/${file.name}.aseprite`)).arrayBuffer();
+      const spr = await AsepriteParser.parse(buf);
+      check(`${file.name}: frame count`, spr.numFrames === file.frames,
+        `got ${spr.numFrames}, want ${file.frames}`);
+
+      for (let f = 0; f < file.frames; f++) {
+        const composite = spr.compositeFrame(f);
+        showComposite(`${file.name} f${f}`, composite);
+        const truth = await loadTruthPNG(`truth/${file.name}_${f + 1}.png`);
+        const errors = diffImages(composite, truth);
+        check(`${file.name}: frame ${f} pixels match truth`, errors.length === 0,
+          errors.join('; '));
+      }
+
+      if (file.name === 'animated') {
+        check('animated: durations 100/200/300ms',
+          spr.durations.join(',') === '100,200,300', `got ${spr.durations.join(',')}`);
+        const tag = spr.tags[0];
+        check('animated: tag walk 0..1',
+          spr.tags.length === 1 && tag.name === 'walk' && tag.from === 0 && tag.to === 1,
+          JSON.stringify(spr.tags));
+        const hidden = spr.layers.find(l => l.name === 'hidden');
+        check('animated: hidden layer parsed as invisible',
+          hidden && !hidden.visible, JSON.stringify(spr.layers.map(l => l.name)));
+      }
+      if (file.name === 'indexed') {
+        check('indexed: palette has red at 1',
+          spr.palette[1] && spr.palette[1].r === 255 && spr.palette[1].g === 0,
+          JSON.stringify(spr.palette));
+      }
+    } catch (e) {
+      check(`${file.name}: parse`, false, e.stack || e.message);
+    }
+  }
+
+  window.TEST_RESULTS = {
+    done: true,
+    passed: results.filter(r => r.pass).length,
+    failed: results.filter(r => !r.pass).length,
+    results,
+  };
+  document.getElementById('results').innerHTML = results.map(r =>
+    `<div class="${r.pass ? 'pass' : 'fail'}">${r.pass ? 'PASS' : 'FAIL'} — ${r.name}` +
+    (r.detail ? `<br>&nbsp;&nbsp;${r.detail}` : '') + `</div>`).join('') +
+    `<div>${window.TEST_RESULTS.passed}/${results.length} passed</div>`;
+}
+
+run();
+</script>
+</body>
+</html>
