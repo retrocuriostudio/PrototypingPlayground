@@ -3,47 +3,62 @@
     {
       "name": "Life is a Coin-Toss",
       "description": "Flip a coin every year of your life to see if you get money or experience. Make choices based on the outcomes. Can you live your best life?",
-      "path": "prototypes/coin-toss/index.html"
+      "path": "prototypes/coin-toss/index.html",
+      "private": false
     },
     {
       "name": "Hex Map Explorer",
       "description": "You have little food left, explore for resources, and try to rebuild society",
-      "path": "prototypes/hex-map/index.html"
+      "path": "prototypes/hex-map/index.html",
+      "private": false
     },
     {
       "name": "Daily Word Blocks",
       "description": "A simple word-search daily puzzle, can you clear the whole grid? share to challenge your friends!",
-      "path": "prototypes/word-blocks/index.html"
+      "path": "prototypes/word-blocks/index.html",
+      "private": false
     },
     {
       "name": "Poker PVP",
       "description": "Play poker against a computer, best of 3 wins!",
-      "path": "prototypes/poker-pvp/index.html"
+      "path": "prototypes/poker-pvp/index.html",
+      "private": false
     },
     {
       "name": "Jack Adventure",
       "description": "A dungeon crawler with blackjack-based combat. Charge to draw cards, attack to deal damage. Clear 10 encounters to win!",
-      "path": "prototypes/jack-adventure/index.html"
+      "path": "prototypes/jack-adventure/index.html",
+      "private": false
     },
     {
       "name": "Combat System Range",
       "description": "Test weapon damage, spread, and reload balance on a shooting range target.",
-      "path": "prototypes/combat-system/index.html"
+      "path": "prototypes/combat-system/index.html",
+      "private": false
     },
     {
       "name": "House Builder",
       "description": "Test a room placement algorithm that builds a house from room prefabs and adjacency rules.",
-      "path": "prototypes/house-builder/index.html"
+      "path": "prototypes/house-builder/index.html",
+      "private": false
     },
     {
       "name": "Card Bricks",
       "description": "Experiment with modular card layouts built from reusable bricks.",
-      "path": "prototypes/card-bricks/index.html"
+      "path": "prototypes/card-bricks/index.html",
+      "private": false
     },
     {
       "name": "BPM Tool",
       "description": "Tap the beat to measure tempo from the average interval between taps in the last minute.",
-      "path": "prototypes/bpm-tool/index.html"
+      "path": "prototypes/bpm-tool/index.html",
+      "private": false
+    },
+    {
+      "name": "Finland TMI B2B Calculator",
+      "description": "Break down a Finnish sole trader (tmi) B2B invoice into taxes, expenses, and take-home pay.",
+      "path": "prototypes/tmi-b2b-calculator/index.html",
+      "private": true
     }
   ]
 }

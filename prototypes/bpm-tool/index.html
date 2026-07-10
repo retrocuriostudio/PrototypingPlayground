@@ -75,9 +75,28 @@
             color: #e8ecf4;
             border: 1px solid rgba(255, 255, 255, 0.25);
         }
+
+        .back-to-menu {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            z-index: 1000;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #e8ecf4;
+            font-size: 0.85rem;
+            text-decoration: none;
+        }
+
+        .back-to-menu:hover {
+            background: rgba(0, 0, 0, 0.7);
+        }
     </style>
 </head>
 <body>
+    <a class="back-to-menu" href="../../Prototypes.html">← Back to Menu</a>
     <main class="panel">
         <div class="bpm-readout">
             <span>BPM:</span>

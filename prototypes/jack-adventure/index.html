@@ -1435,9 +1435,27 @@
             display: none;
         }
 
+        .back-to-menu {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #f7f5f2;
+            font-size: 14px;
+            text-decoration: none;
+        }
+
+        .back-to-menu:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
     </style>
 </head>
 <body>
+    <a class="back-to-menu" href="../../Prototypes.html">← Back to Menu</a>
     <div id="debug-button">🐛</div>
 
     <div id="debug-popup">

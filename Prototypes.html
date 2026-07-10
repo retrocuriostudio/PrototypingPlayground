@@ -208,7 +208,7 @@
                 const prototypeList = document.getElementById('prototype-list');
                 prototypeList.innerHTML = '';
 
-                const prototypes = data.prototypes;
+                const prototypes = data.prototypes.filter(prototype => !prototype.private);
 
                 prototypes.forEach(prototype => {
                     const li = document.createElement('li');
