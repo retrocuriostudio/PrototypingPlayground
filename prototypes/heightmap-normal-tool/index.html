@@ -102,7 +102,7 @@
 </style>
 </head>
 <body>
-<script src="../../debug-widget.js" data-name="Heightmap → Normal Tool" data-version="1"></script>
+<script src="../../debug-widget.js" data-name="Heightmap → Normal Tool" data-version="2"></script>
 
 <div id="topbar">
   <button id="btnLoad">Load .aseprite / PNG</button>
@@ -255,6 +255,15 @@ function buildStepButtons() {
 }
 
 // ---------- file loading ----------
+
+// iOS/iPadOS maps accept-list extensions to registered system file types;
+// .aseprite/.ase aren't registered, so Safari greys them out in the Files
+// picker. Drop the filter there — loadFile() validates by magic bytes anyway.
+// (iPadOS 13+ reports platform "MacIntel"; maxTouchPoints tells it apart.)
+if (/iP(ad|hone|od)/.test(navigator.platform) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+  $('fileInput').removeAttribute('accept');
+}
 
 $('btnLoad').onclick = () => $('fileInput').click();
 $('fileInput').onchange = async e => {
